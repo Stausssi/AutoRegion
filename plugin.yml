@@ -1,7 +1,7 @@
 name: AutoRegion
-version: 0.3
+version: 0.4
 author: Crotex
-main: com.stausssi.AutoRegion.AutoRegionOLD
+main: com.stausssi.AutoRegion.AutoRegion
 website: https://dev.bukkit.org/projects/autoregion
 depend: [WorldGuard, WorldEdit]
 
@@ -24,16 +24,16 @@ permissions:
       autoregion.confirmdisable: true
       autoregion.give: true
   autoregion.autoregion:
-    description: Allows you to execute the Main Command. No other commands can be executed without this permission
+    description: Allows you to execute the Main Command. No other commands can be executed without this permission!
   autoregion.add:
-    description: Allows you to add a block to the config
+    description: Allows you to add a block to the config!
   autoregion.remove:
-    description: Allow you to remove a block from the config
+    description: Allow you to remove a block from the config!
   autoregion.help:
-    description: Allows you to use '/autoregion help'
+    description: Allows you to use '/autoregion help'!
   autoregion.disable:
-    description: Allows you to disable the plugin
+    description: Allows you to disable the plugin!
   autoregion.confirmdisable:
-    description: Allows you to confirm the disable-request
+    description: Allows you to confirm the disable-request!
   autoregion.give:
-    description: Allows you to give Region-Creators to other players or yourself
+    description: Allows you to give Region-Creators to other players or yourself!
