@@ -20,7 +20,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class AutoRegionOLD extends JavaPlugin {
+public class AutoRegion extends JavaPlugin {
     private String name = getDescription().getName();
     private String version = getDescription().getVersion();
     private String sysPrefix;
@@ -32,7 +32,7 @@ public class AutoRegionOLD extends JavaPlugin {
     List<String> lore;
     private boolean disablerequest;
 
-    public AutoRegionOLD() {
+    public AutoRegion() {
         sysPrefix = "[" + name + "] ";
         prefix = ChatColor.translateAlternateColorCodes('&', getConfig().getString("prefix"));
         lore = new ArrayList<String>();
@@ -43,7 +43,7 @@ public class AutoRegionOLD extends JavaPlugin {
         createFiles();
         getConfig().options().copyDefaults(true);
         msgsys("Loading EventHandler...");
-        getServer().getPluginManager().registerEvents(new EventsOLD(this), this);
+        getServer().getPluginManager().registerEvents(new Events(this), this);
         msgsys("EventHandler successfully loaded!");
         msgsys("Applying ItemLore...");
         lore.add("");

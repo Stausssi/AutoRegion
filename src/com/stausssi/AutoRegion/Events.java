@@ -24,10 +24,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
-public class EventsOLD implements Listener {
-    public static AutoRegionOLD plugin;
+public class Events implements Listener {
+    public static AutoRegion plugin;
 
-    public EventsOLD(AutoRegionOLD main) {
+    public Events(AutoRegion main) {
         plugin = main;
     }
 
