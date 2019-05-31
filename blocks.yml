@@ -1,0 +1,5 @@
+Blocks:
+  EMERALD_ORE:
+    radius: 25
+  DIAMOND_ORE:
+    radius: 10

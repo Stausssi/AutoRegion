@@ -1,0 +1,23 @@
+prefix: "&8[&6AutoRegion&8] "
+lore: "Used to create a region! Use it wisely!"
+blockOnFirstJoin: true
+block: DIAMOND_ORE
+messages:
+  noPermission: "&cYou don't have enough permission to execute this command!"
+  disableRequest: "&cDo you really want to disable this plugin? Type &a'/autoregion confirm'&c to confirm"
+  noDisableRequest: "&cThere is no disable request to confirm!"
+  disabled: "&cSuccessfully disabled AutoRegion v%VERSION%. You have to restart your server to enable it again!"
+  blockAdded: "&6Successfully added %BLOCK% with a radius of %RADIUS%!"
+  blockAlreadyAdded: "&c%BLOCK% has been added before!"
+  blockNotAdded: "&cThe block you tried to remove doesn't exist!"
+  blockNotSpecified: "&c%BLOCK% is not part of the config!"
+  blockRemoved: "&6Successfully removed %BLOCK% from the config!"
+  regionCreated: |
+                  &6Succesfully created Region!
+                  Owner: %OWNER%
+  regionIntersecting: "&cThe region you tried to create is intersecting with a different region!"
+  playerNotOnline: "&c%PLAYER% is currently not online"
+  playerInventoryFull: "&c%PLAYER%'s inventory is full!"
+  playerBlockAdded: "&6Successfully added %BLOCK% to %PLAYER%'s inventory!"
+  playerBlockReceived: "&6You recieved a %BLOCK% to create a region (%SIZE%)"
+regions:
