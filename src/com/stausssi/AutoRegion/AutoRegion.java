@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -24,14 +23,22 @@ public class AutoRegion extends JavaPlugin {
     private String name = getDescription().getName();
     private String version = getDescription().getVersion();
     private String author = getDescription().getAuthors().get(0);
+    
     private String sysPrefix, prefix;
+    
     private FileConfiguration blocks, config;
     private File blocksf, configf;
+    
     private CommandSender cmdSender;
     List<String> lore;
+    
     private boolean disablerequest;
+    
     private int radius;
-
+    
+    UUID UUID;
+    
+    
     public AutoRegion() {
         sysPrefix = "[" + name + "] ";
         prefix = ChatColor.translateAlternateColorCodes('&', getConfig().getString("prefix"));
@@ -87,7 +94,7 @@ public class AutoRegion extends JavaPlugin {
                         getServer().getPluginManager().disablePlugin(this);
                         sender.sendMessage(ColorMessage(getConfig().getString("messages.disabled").replace("%VERSION%", version)));
                     } else {
-                    	smsg(sender, getConfig().getString("messages.noDisableRequest"));
+                    	sender.sendMessage(ColorMessage(getConfig().getString("messages.noDisableRequest")));
                     }
                 }
 
@@ -138,9 +145,11 @@ public class AutoRegion extends JavaPlugin {
                 
             	// Add Command
                 if (args[0].equalsIgnoreCase("add")) {
-                    if (sender.hasPermission("autoregion.add")) {                        
+                    if (sender.hasPermission("autoregion.add")) {
+                    	
                         // Check if userInput is a valid block
                         if(isBlock(m)) {
+                        	
                         	// Parse String to int
                            try {
                         	   radius = Integer.parseInt(args[2]);	
@@ -169,38 +178,46 @@ public class AutoRegion extends JavaPlugin {
 	                    if(isBlock(m)) {
 	                    	if (getBlockConfig().get("Blocks." + blockName) != null) {
 		                        String name = args[2];
-		                        UUID UUID = null;
-		
-		                        // Search through players
-		                        for(Player p : getServer().getOnlinePlayers()) {
-		                            if(p.getName().equals(name)) {
-		                                UUID = p.getUniqueId();
-		                            }
-		                        }	
+		                        UUID = null;
 		                        
-		                        if(UUID != null) {
-		                            OfflinePlayer player = Bukkit.getOfflinePlayer(UUID);
-		                            if (player.isOnline()) {
-		                                Player p = (Player)player;
-		                                radius = 2 * getBlockConfig().getInt("Blocks." + blockName + ".radius") + 1;
-		                                ItemStack stack = new ItemStack(m);
-		                                ItemMeta meta = stack.getItemMeta();
-		                                meta.setDisplayName(getItemName());
-		                                meta.setLore(lore);
-		                                stack.setItemMeta(meta);
-		                                if (p.getInventory().firstEmpty() != -1) {
-		                                    p.getInventory().addItem(new ItemStack[]{stack});
-		                                    sender.sendMessage(ColorMessage(getConfig().getString("messages.playerBlockAdded").replaceAll("%BLOCK%", block.toLowerCase().replace("_", " ")).replaceAll("%PLAYER%", p.getName())));
-		                                    p.sendMessage(ColorMessage(getConfig().getString("messages.playerBlockReceived").replaceAll("%BLOCK%", block.toLowerCase().replace("_", " ")).replaceAll("%RADIUS%", Integer.toString(radius))));
-		                                } else {
-			                                sender.sendMessage(ColorMessage(getConfig().getString("messages.playerInventoryFull").replaceAll("%PLAYER%", p.getName())));
-		                                }
-		                            } else {
-		                                sender.sendMessage(ColorMessage(getConfig().getString("messages.playerNotOnline").replaceAll("%PLAYER%", player.getName())));
-		                            }
-		                        } else {
-		                            sender.sendMessage(ColorMessage(getConfig().getString("messages.cantFindPlayer").replaceAll("%PLAYER%", name)));
-		                        }
+		                        // Search through players in a Task
+		                        Runnable playerSearch = () -> {
+		                        	sender.sendMessage(ColorMessage(getConfig().getString("messages.searchingPlayer").replaceAll("%PLAYER%", name)));
+		                        	
+		                        	// Search for player
+		                        	for(Player p : getServer().getOnlinePlayers()) {
+		                        	    if(p.getName().equals(name)) {
+		                        	    	UUID = p.getUniqueId();
+			                                sender.sendMessage(ColorMessage(getConfig().getString("messages.playerFound")));
+			                            }			                            		                            
+			                        }
+			                        	
+		                        	// Proceed
+		                        	if(UUID != null) {
+			                            Player p = Bukkit.getPlayer(UUID);
+			                            
+			                            radius = 2 * getBlockConfig().getInt("Blocks." + blockName + ".radius") + 1;
+			                            
+			                            ItemStack stack = new ItemStack(m);
+			                            ItemMeta meta = stack.getItemMeta();
+			                            meta.setDisplayName(getItemName());
+			                            meta.setLore(lore);
+			                            stack.setItemMeta(meta);
+			                            
+			                            if (p.getInventory().firstEmpty() != -1) {
+			                            	p.getInventory().addItem(new ItemStack[]{stack});
+			                                sender.sendMessage(ColorMessage(getConfig().getString("messages.playerBlockAdded").replaceAll("%BLOCK%", block.toLowerCase().replace("_", " ")).replaceAll("%PLAYER%", p.getName())));
+			                                p.sendMessage(ColorMessage(getConfig().getString("messages.playerBlockReceived").replaceAll("%BLOCK%", block.toLowerCase().replace("_", " ")).replaceAll("%RADIUS%", Integer.toString(radius))));
+			                            } else {
+				                            sender.sendMessage(ColorMessage(getConfig().getString("messages.playerInventoryFull").replaceAll("%PLAYER%", p.getName())));
+			                            }
+			                        } else {
+			                            sender.sendMessage(ColorMessage(getConfig().getString("messages.playerNotFound").replaceAll("%PLAYER%", name)));
+			                        }
+		                        };
+		                        
+		                        Thread thread = new Thread(playerSearch);
+		                        thread.start();
 		                    } else {
 		                        sender.sendMessage(ColorMessage(getConfig().getString("messages.blockNotSpecified").replaceAll("%BLOCK%", block.toLowerCase().replace("_", " "))));
 		                        return true;
@@ -224,10 +241,6 @@ public class AutoRegion extends JavaPlugin {
 
     private void msgServer(String msg) {
         System.out.println(sysPrefix + msg);
-    }
-
-    public void smsg(CommandSender sender, String msg) {
-        sender.sendMessage(prefix + ChatColor.translateAlternateColorCodes('&', msg));
     }
 
     public String ColorMessage(String msg) {

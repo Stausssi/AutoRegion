@@ -19,8 +19,9 @@ messages:
                   &6Succesfully created Region!
                   Owner: %OWNER%
   regionIntersecting: "&cThe region you tried to create is intersecting with another region!"
-  playerNotOnline: "&c%PLAYER% is currently not online"
-  cantFindPlayer: "&cThe Player %PLAYER% can't be found! Try again!"
+  searchingPlayer: "&cSearching for player %PLAYER%..."
+  playerFound: "&cPlayer found! Proceeding..."
+  playerNotFound: "&cThe Player %PLAYER% can't be found! Try again!"
   playerInventoryFull: "&c%PLAYER%'s inventory is full!"
   playerBlockAdded: "&6Successfully added %BLOCK% to %PLAYER%'s inventory!"
   playerBlockReceived: "&6You recieved a %BLOCK% to create a region (%RADIUS%x%RADIUS%)"
