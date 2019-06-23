@@ -1,7 +1,9 @@
 package com.stausssi.AutoRegion;
 
-import com.sk89q.worldedit.BlockVector;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
+import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.domains.DefaultDomain;
 import com.sk89q.worldguard.protection.managers.RegionManager;
@@ -32,11 +34,13 @@ public class Events implements Listener {
         plugin = main;
     }
 
+    // Get WorldEdit 
     public static WorldEditPlugin getWorldEdit() {
         Plugin we = Bukkit.getServer().getPluginManager().getPlugin("WorldEdit");
         return we != null && we instanceof WorldEditPlugin ? (WorldEditPlugin)we : null;
     }
 
+    // Get WorldGuard
     public static WorldGuardPlugin getWorldGuard() {
         Plugin wg = Bukkit.getServer().getPluginManager().getPlugin("WorldGuard");
         return wg != null && wg instanceof WorldGuardPlugin ? (WorldGuardPlugin)wg : null;
@@ -48,23 +52,34 @@ public class Events implements Listener {
         Material m = block.getType();
         String blockName = m.name();
         Player p = e.getPlayer();
+        
+        // Check whether block has been defined in the config
         if (plugin.getBlockConfig().get("Blocks." + blockName) != null) {
-            int id = p.getInventory().getHeldItemSlot();
-            ItemStack item = new ItemStack(p.getInventory().getItem(id));
-            ItemMeta meta = item.getItemMeta();
-            if(meta != null) {
+            ItemStack item = new ItemStack(p.getInventory().getItemInMainHand());
+            
+            // Check whether item has a meta and is therefore maybe a RegionCreator
+            if(item.hasItemMeta()) {
+            	ItemMeta meta = item.getItemMeta();
+            	
+            	// Check whether item is a RegionCreator
             	if (meta.getLore().equals(plugin.getLore())) {
+            		// Get coordinates
                     int x = block.getX();
                     int z = block.getZ();
                     
+                    // Get radius
                     int radius = plugin.getBlockConfig().getInt("Blocks." + blockName + ".radius");
                     
-                    BlockVector pos1 = new BlockVector(x + radius, 0, z + radius);
-                    BlockVector pos2 = new BlockVector(x - radius, block.getWorld().getMaxHeight(), z - radius);
+                    // Create BlockVectors
+                    BlockVector3 pos1 = BlockVector3.at(x + radius, 0, z + radius);
+                    BlockVector3 pos2 = BlockVector3.at(x - radius, block.getWorld().getMaxHeight(), z - radius);
                     
-                    RegionManager rMan = getWorldGuard().getRegionManager(block.getWorld());
+					RegionManager rMan = WorldGuard.getInstance().getPlatform().getRegionContainer().get(BukkitAdapter.adapt(block.getWorld()));
                     ProtectedCuboidRegion pReg;
                     
+                    // Check whether the player already has a region
+                    // If so, add a count next to the regions name
+                    // Create Region
                     if (rMan.getRegion(p.getName()) != null) {
                         int i = plugin.getConfig().getInt("regions." + p.getName()) + 1;
                         pReg = new ProtectedCuboidRegion(p.getName() + i, pos1, pos2);
@@ -75,7 +90,8 @@ public class Events implements Listener {
                     Map<String, ProtectedRegion> regionList = rMan.getRegions();
                     List<ProtectedRegion> regions = new ArrayList<ProtectedRegion>();
                     Iterator<String> regionIterator = regionList.keySet().iterator();
-
+                    
+                    // Get all regions
                     while(regionIterator.hasNext()) {
                         String key = (String)regionIterator.next();
                         ProtectedRegion pr = (ProtectedRegion)regionList.get(key);
@@ -84,7 +100,9 @@ public class Events implements Listener {
                         }
                     }
 
+                    // Check whether there are intersecting regions
                     if (pReg.getIntersectingRegions(regions).isEmpty()) {
+                    	// Add Player as owner of the region
                         DefaultDomain d = new DefaultDomain();
                         d.addPlayer(p.getName());
                         d.addPlayer(p.getUniqueId());
@@ -98,11 +116,9 @@ public class Events implements Listener {
                         p.sendMessage(plugin.ColorMessage(plugin.getConfig().getString("messages.regionIntersecting")));
                         e.setCancelled(true);
                     }
-                }
+            	}	
             }
-            
         }
-
     }
 
     @EventHandler
