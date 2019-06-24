@@ -17,6 +17,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class AutoRegion extends JavaPlugin {
@@ -47,16 +48,22 @@ public class AutoRegion extends JavaPlugin {
     }
 
     public void onEnable() {
-        createFiles();
+        initializeFiles();
         getConfig().options().copyDefaults(true);
-        msgServer("Loading EventHandler...");
-        getServer().getPluginManager().registerEvents(new Events(this), this);
-        msgServer("EventHandler loaded!");
-        msgServer("Applying ItemLore...");
-        lore.add("");
-        lore.add(getConfig().getString("lore"));
-        msgServer("Lore applied!");
-        msgServer("Successfully enabled " + name + " v" + version + " by " + author + "!");
+        msgServer("Searching Dependencies...");
+        if(checkDependencies()) {
+        	msgServer("Applying ItemLore...");
+            lore.add("");
+            lore.add(getConfig().getString("lore"));
+            msgServer("Lore applied!");
+            msgServer("Loading EventHandler...");
+            getServer().getPluginManager().registerEvents(new Events(this), this);
+            msgServer("EventHandler loaded!");
+            msgServer("Successfully enabled " + name + " v" + version + " by " + author + "!");
+        } else {
+        	disablePlugin();
+        }
+        
     }
 
     public void onDisable() {
@@ -91,7 +98,7 @@ public class AutoRegion extends JavaPlugin {
                     if (!sender.hasPermission("autoregion.confirmdisable")) {
                         noPerm();
                     } else if (disablerequest) {
-                        getServer().getPluginManager().disablePlugin(this);
+                        disablePlugin();
                         sender.sendMessage(ColorMessage(getConfig().getString("messages.disabled").replace("%VERSION%", version)));
                     } else {
                     	sender.sendMessage(ColorMessage(getConfig().getString("messages.noDisableRequest")));
@@ -252,7 +259,7 @@ public class AutoRegion extends JavaPlugin {
         cmdSender.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString("messages.noPermission")));
     }
 
-    private void createFiles() {
+    private void initializeFiles() {
         msgServer("Loading config...");
         
         configf = new File(getDataFolder(), "config.yml");
@@ -307,12 +314,34 @@ public class AutoRegion extends JavaPlugin {
         }
     }
     
+    private boolean checkDependencies() {
+    	PluginManager pluginManager = getServer().getPluginManager();
+    	
+    	if(pluginManager.getPlugin("WorldEdit") != null) {
+    		msgServer("Found WorldEdit v" + pluginManager.getPlugin("WorldEdit").getDescription().getVersion() + "!");
+    	} else {
+    		msgServer("WorldEdit not found!");
+    		return false;
+    	}
+    	if(pluginManager.getPlugin("WorldGuard") != null) {
+    		msgServer("Found WorldGuard v" + pluginManager.getPlugin("WorldGuard").getDescription().getVersion() + "!");
+    	} else {
+    		msgServer("WorldGuard not found!");
+    		return false;
+    	}
+    	return true;
+    }
+    
     private boolean isBlock(Material m) {
     	if(m != null) {
     		return m.isBlock();
     	} else {
     		return false;
     	}
+    }
+    
+    private void disablePlugin() {
+    	getServer().getPluginManager().disablePlugin(this);
     }
     
     public List<String> getLore() {

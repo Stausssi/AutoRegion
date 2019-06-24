@@ -1,9 +1,9 @@
 name: AutoRegion
-version: 0.4.2
+version: 0.4.3
 author: Crotex
 main: com.stausssi.AutoRegion.AutoRegion
 website: https://dev.bukkit.org/projects/autoregion
-depend: [WorldGuard, WorldEdit]
+softdepend: [WorldGuard, WorldEdit]
 
 commands:
   autoregion:
