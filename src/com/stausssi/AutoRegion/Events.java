@@ -126,6 +126,7 @@ public class Events implements Listener {
         Player p = e.getPlayer();
         if (!p.hasPlayedBefore() && plugin.getConfig().getBoolean("blockOnFirstJoin")) {
             String block = plugin.getConfig().getString("block").toUpperCase();
+            plugin.getRadius(block);
             Material m = Material.getMaterial(block);
             ItemStack stack = new ItemStack(m);
             ItemMeta meta = stack.getItemMeta();

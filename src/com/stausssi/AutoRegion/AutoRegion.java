@@ -35,7 +35,7 @@ public class AutoRegion extends JavaPlugin {
     
     private boolean disablerequest;
     
-    private int radius;
+    public int radius;
     
     UUID UUID;
     
@@ -48,7 +48,53 @@ public class AutoRegion extends JavaPlugin {
     }
 
     public void onEnable() {
-        initializeFiles();
+    	if(getConfig().getBoolean("auto-update")) {
+    		msgServer("Checking for updates...");
+    		@SuppressWarnings("unused")
+			Updater updater = new Updater(this, 285923, this.getFile(), Updater.UpdateType.DEFAULT, true);
+    		
+    		Updater.UpdateResult result = updater.getResult();
+    		switch(result) {
+    		case SUCCESS:
+                // Success: The updater found an update, and has readied it to be loaded the next time the server restarts/reloads
+    			msgServer("Update found and ready to install!");
+                break;
+            case NO_UPDATE:
+                // No Update: The updater did not find an update, and nothing was downloaded.
+            	msgServer("No update found!");
+                break;
+            case DISABLED:
+                // Won't Update: The updater was disabled in its configuration file.
+            	msgServer("Auto-Updater is disabled in global config!");
+                break;
+            case FAIL_DOWNLOAD:
+                // Download Failed: The updater found an update, but was unable to download it.
+            	msgServer("Unable to download update!");
+                break;
+            case FAIL_DBO:
+                // dev.bukkit.org Failed: For some reason, the updater was unable to contact DBO to download the file.
+            	msgServer("Unable to connect to Bukkit!");
+                break;
+            case FAIL_NOVERSION:
+                // No version found: When running the version check, the file on DBO did not contain the a version in the format 'vVersion' such as 'v1.0'.
+            	msgServer("Versions do not match. No update installed!");
+                break;
+            case FAIL_BADID:
+                // Bad id: The id provided by the plugin running the updater was invalid and doesn't exist on DBO.
+            	msgServer("PluginID is invalid. Please contact the developer!");
+                break;
+            case FAIL_APIKEY:
+                // Bad API key: The user provided an invalid API key for the updater to use.
+            	msgServer("API key is invalid. Please contact the developer!");
+                break;
+            case UPDATE_AVAILABLE:
+                // There was an update found, but because you had the UpdateType set to NO_DOWNLOAD, it was not downloaded.
+            	msgServer("Update found but not downloaded!");
+            	break;
+    		}
+    			
+    	}
+		initializeFiles();
         getConfig().options().copyDefaults(true);
         msgServer("Searching Dependencies...");
         if(checkDependencies()) {
@@ -63,7 +109,6 @@ public class AutoRegion extends JavaPlugin {
         } else {
         	disablePlugin();
         }
-        
     }
 
     public void onDisable() {
@@ -346,6 +391,10 @@ public class AutoRegion extends JavaPlugin {
     
     public List<String> getLore() {
     	return lore;
+    }
+    
+    public void getRadius(String blockName) {
+    	radius = 2 * getBlockConfig().getInt("Blocks." + blockName + ".radius") + 1;
     }
     
     public String getItemName() {

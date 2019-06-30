@@ -3,6 +3,7 @@ lore: "Use it wisely!"
 itemName: "Creates a region of %RADIUS%x%RADIUS%!"
 blockOnFirstJoin: true
 block: DIAMOND_ORE
+auto-update: true
 messages:
   noPermission: "&cYou don't have enough permission to execute this command!"
   disableRequest: "&cDo you really want to disable this plugin? Type &a'/autoregion confirm'&c to confirm"
