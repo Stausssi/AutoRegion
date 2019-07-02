@@ -48,6 +48,9 @@ public class AutoRegion extends JavaPlugin {
     }
 
     public void onEnable() {
+    	initializeFiles();
+        getConfig().options().copyDefaults(true);
+        
     	if(getConfig().getBoolean("auto-update")) {
     		msgServer("Checking for updates...");
     		@SuppressWarnings("unused")
@@ -92,12 +95,10 @@ public class AutoRegion extends JavaPlugin {
             	msgServer("Update found but not downloaded!");
             	break;
     		}
-    			
     	}
-		initializeFiles();
-        getConfig().options().copyDefaults(true);
+		
         msgServer("Searching Dependencies...");
-        if(checkDependencies()) {
+        if(dependenciesInstalled()) {
         	msgServer("Applying ItemLore...");
             lore.add("");
             lore.add(getConfig().getString("lore"));
@@ -139,7 +140,7 @@ public class AutoRegion extends JavaPlugin {
                 } 
                 
                 // Confirm Disable Command
-                if (args[0].equalsIgnoreCase("confirm")) {
+                else if (args[0].equalsIgnoreCase("confirm")) {
                     if (!sender.hasPermission("autoregion.confirmdisable")) {
                         noPerm();
                     } else if (disablerequest) {
@@ -151,20 +152,53 @@ public class AutoRegion extends JavaPlugin {
                 }
 
                 // Help Command
-                if (args[0].equalsIgnoreCase("help")) {
+                else if (args[0].equalsIgnoreCase("help")) {
                     if (sender.hasPermission("autoregion.help")) {
                         sender.sendMessage("§8-------- " + prefix + "--------\n"
                         		+ "§6/autoregion disable - §7Disables the plugin\n"
-                        		+ "§6/autoregion add [BlockName] [Radius] - §7Adds a block to the config\n"
-                        		+ "§6/autoregion remove [BlockName] - §7Removes a block from the config\n"
-                        		+ "§6/autoregion give [BlockName] [Player]- §7Gives a player a block to create a region\n"
+                        		+ "§6/autoregion updates [enable/disable] - §7Enables/Disables automatic updating\n"
+                        		+ "§6/autoregion list - §7Gives you a list of all RegionCreators"
+                        		+ "§6/autoregion help - §7Displays a list with all commands"
+                        		+ "§6/autoregion add [BlockName] [Radius] - §7Adds a RegionCreator to the config\n"
+                        		+ "§6/autoregion remove [BlockName] - §7Removes a RegionCreator from the config\n"
+                        		+ "§6/autoregion give [BlockName] [Player]- §7Gives a player a RegionCreator to create a region\n"
                         		+ "\n"
-                        		+ "§4For instance, BlockName: 'DIAMOND_ORE'");
+                        		+ "§4[BlockName] has to be a valid RegionCreator, for instance: 'DIAMOND_ORE'");
                     } else {
                     	noPerm();
                     }
                 }
-            } else if (args.length == 2) {             
+                
+                // List Command
+                else if(args[0].equalsIgnoreCase("list")) {
+                	if(sender.hasPermission("autoregion.list")) {
+                		String regionCreators = "";
+                		
+                		// Get all registered RegionCreators
+                		for(String key : getBlockConfig().getConfigurationSection("Blocks").getKeys(false)) {
+                			regionCreators += "§6- ";
+                			// Add the name of the RegionCreator
+                			regionCreators += key;
+                			// Add the size of the region
+                			regionCreators += " §7- " + getConfig().getString("itemName").replaceAll("%RADIUS%",  Integer.toString(2 * getBlockConfig().getInt("Blocks." + key + ".radius") + 1));
+                			// New line
+                			regionCreators += "\n";
+                		}
+                		
+                		sender.sendMessage("§8-------- " + prefix + "--------\n"
+                				+ ChatColor.translateAlternateColorCodes('&', getConfig().getString("messages.list"))
+                				+ "\n"
+                				+ regionCreators);
+                	} else {
+                		noPerm();
+                	}
+                }else {
+                	return false;
+                }
+            }
+            
+            // Two arguments
+            else if (args.length == 2) {             
             	// Remove Block Command
             	if(args[0].equalsIgnoreCase("remove")) {
 	                if (sender.hasPermission("autoregion.remove")) {
@@ -187,10 +221,44 @@ public class AutoRegion extends JavaPlugin {
 	                } else {
 	                	noPerm();
 	                }
-	            } else { 
-	            	return false;
 	            }
-            } else if (args.length == 3) {
+            	
+            	// Updates enable/disable Command
+            	else if(args[0].equalsIgnoreCase("updates")) {
+                	if(args[1].equalsIgnoreCase("disable")) {
+                		if(sender.hasPermission("autoregion.updates.disable")) {
+                			if(getConfig().getBoolean("auto-update")) {
+                				getConfig().set("auto-update", false);
+                        		saveConfig();
+                        		sender.sendMessage(ColorMessage(getConfig().getString("messages.updatesDisabled")));
+                			} else {
+                				sender.sendMessage(ColorMessage(getConfig().getString("messages.updatesAlreadyDisabled")));
+                			}
+                    	} else {
+                    		noPerm();
+                    	}
+                	} else if (args[1].equalsIgnoreCase("enable")) {
+                		if(sender.hasPermission("autoregion.updates.enable")) {
+                			if(!getConfig().getBoolean("auto-update")) {
+                				getConfig().set("auto-update", true);
+                        		saveConfig();
+                        		sender.sendMessage(ColorMessage(getConfig().getString("messages.updatesEnabled")));
+                			} else {
+                				sender.sendMessage(ColorMessage(getConfig().getString("messages.updatesAlreadyEnabled")));
+                			}
+                    	} else {
+                    		noPerm();
+                    	}
+                	} else {
+                		return false;
+                	}
+                } else {
+                	return false;
+            	}
+            } 
+            
+            // Three arguments
+            else if (args.length == 3) {
             	blockName = args[1].toUpperCase();
                 m = Material.getMaterial(blockName);
                 block = blockName.toLowerCase().replace("_", " ");
@@ -224,7 +292,10 @@ public class AutoRegion extends JavaPlugin {
                     } else {
                     	noPerm();
                     }
-                } else if (args[0].equalsIgnoreCase("give")) {
+                } 
+                
+                // Give Command
+                else if (args[0].equalsIgnoreCase("give")) {
                 	if(sender.hasPermission("autoregion.give")) { 
                 		// Check if userInput is a valid block
 	                    if(isBlock(m)) {
@@ -355,19 +426,21 @@ public class AutoRegion extends JavaPlugin {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
     }
     
-    private boolean checkDependencies() {
+    private boolean dependenciesInstalled() {
     	PluginManager pluginManager = getServer().getPluginManager();
     	
+    	// Check for WorldEdit
     	if(pluginManager.getPlugin("WorldEdit") != null) {
     		msgServer("Found WorldEdit v" + pluginManager.getPlugin("WorldEdit").getDescription().getVersion() + "!");
     	} else {
     		msgServer("WorldEdit not found!");
     		return false;
     	}
+    	
+    	//Check for WorldGuard
     	if(pluginManager.getPlugin("WorldGuard") != null) {
     		msgServer("Found WorldGuard v" + pluginManager.getPlugin("WorldGuard").getDescription().getVersion() + "!");
     	} else {

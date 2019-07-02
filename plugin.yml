@@ -1,5 +1,5 @@
 name: AutoRegion
-version: 0.4.3
+version: 0.5.2
 author: Crotex
 main: com.stausssi.AutoRegion.AutoRegion
 website: https://dev.bukkit.org/projects/autoregion
@@ -22,7 +22,10 @@ permissions:
       autoregion.help: true
       autoregion.disable: true
       autoregion.confirmdisable: true
+      autoregion.updates.disable: true
+      autoregion.updates.enable: true
       autoregion.give: true
+      autoregion.list: true
   autoregion.autoregion:
     description: Allows you to execute the Main Command. No other commands can be executed without this permission!
   autoregion.add:
@@ -35,5 +38,11 @@ permissions:
     description: Allows you to disable the plugin!
   autoregion.confirmdisable:
     description: Allows you to confirm the disable-request!
+  autoregion.updates.disable:
+    description: Allows you to disable the auto-updater!
+  autoregion.updates.enable:
+    description: Allows you to enable the auto-updater!
   autoregion.give:
     description: Allows you to give Region-Creators to other players or yourself!
+  autoregion.list:
+    description: Allows you to display a list with all registered RegionCreators!
