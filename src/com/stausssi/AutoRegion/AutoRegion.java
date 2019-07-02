@@ -155,13 +155,13 @@ public class AutoRegion extends JavaPlugin {
                 else if (args[0].equalsIgnoreCase("help")) {
                     if (sender.hasPermission("autoregion.help")) {
                         sender.sendMessage("§8-------- " + prefix + "--------\n"
-                        		+ "§6/autoregion disable - §7Disables the plugin\n"
-                        		+ "§6/autoregion updates [enable/disable] - §7Enables/Disables automatic updating\n"
-                        		+ "§6/autoregion list - §7Gives you a list of all RegionCreators"
-                        		+ "§6/autoregion help - §7Displays a list with all commands"
-                        		+ "§6/autoregion add [BlockName] [Radius] - §7Adds a RegionCreator to the config\n"
-                        		+ "§6/autoregion remove [BlockName] - §7Removes a RegionCreator from the config\n"
-                        		+ "§6/autoregion give [BlockName] [Player]- §7Gives a player a RegionCreator to create a region\n"
+                        		+ "§6/autoregion disable §7- Disables the plugin\n"
+                        		+ "§6/autoregion updates [enable/disable] §7- Enables/Disables automatic updating\n"
+                        		+ "§6/autoregion list §7- Gives you a list of all RegionCreators\n"
+                        		+ "§6/autoregion help §7- Displays a list with all commands\n"
+                        		+ "§6/autoregion add [BlockName] [Radius] §7- Adds a RegionCreator to the config\n"
+                        		+ "§6/autoregion remove [BlockName] §7- Removes a RegionCreator from the config\n"
+                        		+ "§6/autoregion give [BlockName] [Player] §7- Gives a player a RegionCreator to create a region\n"
                         		+ "\n"
                         		+ "§4[BlockName] has to be a valid RegionCreator, for instance: 'DIAMOND_ORE'");
                     } else {
@@ -176,7 +176,7 @@ public class AutoRegion extends JavaPlugin {
                 		
                 		// Get all registered RegionCreators
                 		for(String key : getBlockConfig().getConfigurationSection("Blocks").getKeys(false)) {
-                			regionCreators += "§6- ";
+                			regionCreators += "§6";
                 			// Add the name of the RegionCreator
                 			regionCreators += key;
                 			// Add the size of the region
