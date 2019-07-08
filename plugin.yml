@@ -1,5 +1,5 @@
 name: AutoRegion
-version: 0.5.2
+version: 0.6
 author: Crotex
 main: com.stausssi.AutoRegion.AutoRegion
 website: https://dev.bukkit.org/projects/autoregion
@@ -26,6 +26,12 @@ permissions:
       autoregion.updates.enable: true
       autoregion.give: true
       autoregion.list: true
+  autoregion.updates.*:
+    description: Permission to both enable and disable automatic updates
+    children:
+      autoregion.autoregion: true
+      autoregion.updates.enable: true
+      autoregion.updates.disable: true
   autoregion.autoregion:
     description: Allows you to execute the Main Command. No other commands can be executed without this permission!
   autoregion.add:

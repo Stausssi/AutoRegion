@@ -1,5 +1,5 @@
 prefix: "&8[&6AutoRegion&8] "
-lore: "Use it wisely!"
+lore: "This is a RegionCreator. Use it wisely!"
 itemName: "Creates a region of %RADIUS%x%RADIUS%!"
 blockOnFirstJoin: true
 block: DIAMOND_ORE
@@ -30,5 +30,10 @@ messages:
   playerNotFound: "&cThe Player %PLAYER% can't be found! Try again!"
   playerInventoryFull: "&c%PLAYER%'s inventory is full!"
   playerBlockAdded: "&6Successfully added %BLOCK% to %PLAYER%'s inventory!"
-  playerBlockReceived: "&6You recieved a %BLOCK% to create a region (%RADIUS%x%RADIUS%)"
+  playerBlockReceived: "&6You received a %BLOCK% to create a region (%RADIUS%x%RADIUS%)"
+  playerWelcomeMessage: "&6As a welcome to the server you received a RegionCreator to create a region of %RADIUS%x%RADIUS%"
+  maxRegionsReached: "&cYou already reached the maximum regions (%REGIONS%) for your group (%GROUP%)!"
+groups:
+  default: 2
+  VIP: 5
 regions:

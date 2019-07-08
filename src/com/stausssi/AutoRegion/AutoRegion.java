@@ -309,7 +309,7 @@ public class AutoRegion extends JavaPlugin {
 		                        	
 		                        	// Search for player
 		                        	for(Player p : getServer().getOnlinePlayers()) {
-		                        	    if(p.getName().equals(name)) {
+		                        	    if(p.getName().toLowerCase().equals(name.toLowerCase())) {
 		                        	    	UUID = p.getUniqueId();
 			                                sender.sendMessage(ColorMessage(getConfig().getString("messages.playerFound")));
 			                            }			                            		                            
@@ -466,8 +466,9 @@ public class AutoRegion extends JavaPlugin {
     	return lore;
     }
     
-    public void getRadius(String blockName) {
+    public int getRadius(String blockName) {
     	radius = 2 * getBlockConfig().getInt("Blocks." + blockName + ".radius") + 1;
+    	return radius;
     }
     
     public String getItemName() {
