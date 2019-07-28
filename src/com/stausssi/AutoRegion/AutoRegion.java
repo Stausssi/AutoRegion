@@ -21,24 +21,38 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class AutoRegion extends JavaPlugin {
+	// Get Information about the plugin
     private String name = getDescription().getName();
     private String version = getDescription().getVersion();
     private String author = getDescription().getAuthors().get(0);
     
+    // Create prefixes
     private String sysPrefix, prefix;
     
-    private FileConfiguration blocks, config;
-    private File blocksf, configf;
+    // Declare Identifiers for the config and blocks file
+    public static String messagesIdentifier = "messages";
+    
+    public static String groupIdentifier = "groups";
+    
+    public static String playerIdentifier = "players";
+    public static String nameIdentifier = "name";
+    public static String regionsIdentifier = "regions";
+    public static String regionCountIdentifier = "regionCount";
+    public static String regionCreatorsReceivedIdentifier = "regionCreatorsReceived";
+    
+    public static String blocksIdentifier = "Blocks";
+    public static String radiusIdentifier = "radius";
+    
+    // Create the file instances for the configuration and blocks file
+    private FileConfiguration blockConfig, config;
+    private File blockFile, configFile;
     
     private CommandSender cmdSender;
     List<String> lore;
     
     private boolean disablerequest;
     
-    public int radius;
-    
     UUID UUID;
-    
     
     public AutoRegion() {
         sysPrefix = "[" + name + "] ";
@@ -53,6 +67,7 @@ public class AutoRegion extends JavaPlugin {
         
     	if(getConfig().getBoolean("auto-update")) {
     		msgServer("Checking for updates...");
+    		
     		@SuppressWarnings("unused")
 			Updater updater = new Updater(this, 285923, this.getFile(), Updater.UpdateType.DEFAULT, true);
     		
@@ -132,7 +147,7 @@ public class AutoRegion extends JavaPlugin {
             	// Disable Command
                 if (args[0].equalsIgnoreCase("disable")) {
                     if (sender.hasPermission("autoregion.disable")) {
-                        sender.sendMessage(ColorMessage(getConfig().getString("messages.disableRequest")));
+                        sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "disableRequest")));
                         disablerequest = true;
                     } else {
                     	noPerm();
@@ -145,9 +160,9 @@ public class AutoRegion extends JavaPlugin {
                         noPerm();
                     } else if (disablerequest) {
                         disablePlugin();
-                        sender.sendMessage(ColorMessage(getConfig().getString("messages.disabled").replace("%VERSION%", version)));
+                        sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "disabled").replace("%VERSION%", version)));
                     } else {
-                    	sender.sendMessage(ColorMessage(getConfig().getString("messages.noDisableRequest")));
+                    	sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "noDisableRequest")));
                     }
                 }
 
@@ -175,18 +190,18 @@ public class AutoRegion extends JavaPlugin {
                 		String regionCreators = "";
                 		
                 		// Get all registered RegionCreators
-                		for(String key : getBlockConfig().getConfigurationSection("Blocks").getKeys(false)) {
+                		for(String key : getBlockConfig().getConfigurationSection(blocksIdentifier).getKeys(false)) {
                 			regionCreators += "§6";
                 			// Add the name of the RegionCreator
                 			regionCreators += key;
                 			// Add the size of the region
-                			regionCreators += " §7- " + getConfig().getString("itemName").replaceAll("%RADIUS%",  Integer.toString(2 * getBlockConfig().getInt("Blocks." + key + ".radius") + 1));
+                			regionCreators += " §7- " + getConfig().getString("itemName").replaceAll("%DIAMETER%",  Integer.toString(getDiameter(key)));
                 			// New line
                 			regionCreators += "\n";
                 		}
                 		
                 		sender.sendMessage("§8-------- " + prefix + "--------\n"
-                				+ ChatColor.translateAlternateColorCodes('&', getConfig().getString("messages.list"))
+                				+ ChatColor.translateAlternateColorCodes('&', getConfig().getString(messagesIdentifier + "." + "list"))
                 				+ "\n"
                 				+ regionCreators);
                 	} else {
@@ -208,15 +223,15 @@ public class AutoRegion extends JavaPlugin {
 	                    
 	                    // Check if userInput is a valid block
 	                    if(isBlock(m)) {
-		                    if (getBlockConfig().get("Blocks." + blockName) == null) {
-		                        sender.sendMessage(ColorMessage(getConfig().getString("messages.blockNotAdded").replaceAll("%BLOCK%", block)));
+		                    if (getBlockConfig().get(blocksIdentifier + "." + blockName) == null) {
+		                        sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "blockNotAdded").replaceAll("%BLOCK%", block)));
 		                    } else {
-		                    	getBlockConfig().set("Blocks." + blockName, null);
+		                    	getBlockConfig().set(blocksIdentifier + "." + blockName, null);
 			                    saveBlockConfig();
-			                    sender.sendMessage(ColorMessage(getConfig().getString("messages.blockRemoved").replaceAll("%BLOCK%", block)));
+			                    sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "blockRemoved").replaceAll("%BLOCK%", block)));
 		                    }
 	                    } else {
-	                    	sender.sendMessage(ColorMessage(getConfig().getString("messages.blockDoesntExist").replaceAll("%BLOCK%", block)));
+	                    	sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "blockDoesntExist").replaceAll("%BLOCK%", block)));
 	                    }
 	                } else {
 	                	noPerm();
@@ -230,9 +245,9 @@ public class AutoRegion extends JavaPlugin {
                 			if(getConfig().getBoolean("auto-update")) {
                 				getConfig().set("auto-update", false);
                         		saveConfig();
-                        		sender.sendMessage(ColorMessage(getConfig().getString("messages.updatesDisabled")));
+                        		sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "updatesDisabled")));
                 			} else {
-                				sender.sendMessage(ColorMessage(getConfig().getString("messages.updatesAlreadyDisabled")));
+                				sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "updatesAlreadyDisabled")));
                 			}
                     	} else {
                     		noPerm();
@@ -242,9 +257,9 @@ public class AutoRegion extends JavaPlugin {
                 			if(!getConfig().getBoolean("auto-update")) {
                 				getConfig().set("auto-update", true);
                         		saveConfig();
-                        		sender.sendMessage(ColorMessage(getConfig().getString("messages.updatesEnabled")));
+                        		sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "updatesEnabled")));
                 			} else {
-                				sender.sendMessage(ColorMessage(getConfig().getString("messages.updatesAlreadyEnabled")));
+                				sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "updatesAlreadyEnabled")));
                 			}
                     	} else {
                     		noPerm();
@@ -269,25 +284,26 @@ public class AutoRegion extends JavaPlugin {
                     	
                         // Check if userInput is a valid block
                         if(isBlock(m)) {
+                        	int radius;
                         	
                         	// Parse String to int
                            try {
                         	   radius = Integer.parseInt(args[2]);	
                            } catch (NumberFormatException e) {
-                           		sender.sendMessage(ColorMessage(getConfig().getString("messages.noValidNumber").replaceAll("%NUMBER%", args[2])));
+                           		sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "noValidNumber").replaceAll("%NUMBER%", args[2])));
                            		return true;
                            }
                            
-                           if (getBlockConfig().get("Blocks." + blockName) != null) {
-                               sender.sendMessage(ColorMessage(getConfig().getString("messages.blockAlreadyAdded").replaceAll("%BLOCK%", block)));
+                           if (getBlockConfig().get(blocksIdentifier + "." + blockName) != null) {
+                               sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "blockAlreadyAdded").replaceAll("%BLOCK%", block)));
                            } else {
-	                           getBlockConfig().set("Blocks." + blockName, "");
-	                           getBlockConfig().set("Blocks." + blockName + ".radius", radius);
+	                           getBlockConfig().set(blocksIdentifier + "." + blockName, "");
+	                           getBlockConfig().set(blocksIdentifier + "." + blockName + "." + radiusIdentifier, radius);
 	                           saveBlockConfig();
-	                           sender.sendMessage(ColorMessage(getConfig().getString("messages.blockAdded").replaceAll("%BLOCK%", block).replaceAll("%RADIUS%", String.valueOf(radius))));
+	                           sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "blockAdded").replaceAll("%BLOCK%", block).replaceAll("%RADIUS%", String.valueOf(radius))));
                            }
                        } else {
-                    	   sender.sendMessage(ColorMessage(getConfig().getString("messages.blockDoesntExist").replaceAll("%BLOCK%", block)));
+                    	   sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "blockDoesntExist").replaceAll("%BLOCK%", block)));
                        }
                     } else {
                     	noPerm();
@@ -299,19 +315,19 @@ public class AutoRegion extends JavaPlugin {
                 	if(sender.hasPermission("autoregion.give")) { 
                 		// Check if userInput is a valid block
 	                    if(isBlock(m)) {
-	                    	if (getBlockConfig().get("Blocks." + blockName) != null) {
+	                    	if (getBlockConfig().get(blocksIdentifier + "." + blockName) != null) {
 		                        String name = args[2];
 		                        UUID = null;
 		                        
 		                        // Search through players in a Task
 		                        Runnable playerSearch = () -> {
-		                        	sender.sendMessage(ColorMessage(getConfig().getString("messages.searchingPlayer").replaceAll("%PLAYER%", name)));
+		                        	sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "searchingPlayer").replaceAll("%PLAYER%", name)));
 		                        	
 		                        	// Search for player
 		                        	for(Player p : getServer().getOnlinePlayers()) {
 		                        	    if(p.getName().toLowerCase().equals(name.toLowerCase())) {
 		                        	    	UUID = p.getUniqueId();
-			                                sender.sendMessage(ColorMessage(getConfig().getString("messages.playerFound")));
+			                                sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "playerFound")));
 			                            }			                            		                            
 			                        }
 			                        	
@@ -319,34 +335,35 @@ public class AutoRegion extends JavaPlugin {
 		                        	if(UUID != null) {
 			                            Player p = Bukkit.getPlayer(UUID);
 			                            
-			                            radius = 2 * getBlockConfig().getInt("Blocks." + blockName + ".radius") + 1;
+			                            int diameter = getDiameter(blockName);
 			                            
 			                            ItemStack stack = new ItemStack(m);
 			                            ItemMeta meta = stack.getItemMeta();
-			                            meta.setDisplayName(getItemName());
+			                            meta.setDisplayName(getItemName(diameter));
 			                            meta.setLore(lore);
 			                            stack.setItemMeta(meta);
 			                            
 			                            if (p.getInventory().firstEmpty() != -1) {
 			                            	p.getInventory().addItem(new ItemStack[]{stack});
-			                                sender.sendMessage(ColorMessage(getConfig().getString("messages.playerBlockAdded").replaceAll("%BLOCK%", block.toLowerCase().replace("_", " ")).replaceAll("%PLAYER%", p.getName())));
-			                                p.sendMessage(ColorMessage(getConfig().getString("messages.playerBlockReceived").replaceAll("%BLOCK%", block.toLowerCase().replace("_", " ")).replaceAll("%RADIUS%", Integer.toString(radius))));
+			                            	getConfig().set(playerIdentifier + "." + UUID + "." + regionsIdentifier + "." + regionCreatorsReceivedIdentifier, getRegionCreatorsReceived(UUID) + 1);
+			                                sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "playerBlockAdded").replaceAll("%BLOCK%", block.toLowerCase().replace("_", " ")).replaceAll("%PLAYER%", p.getName())));
+			                                p.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "playerBlockReceived").replaceAll("%BLOCK%", block.toLowerCase().replace("_", " ")).replaceAll("%DIAMETER%", Integer.toString(diameter))));
 			                            } else {
-				                            sender.sendMessage(ColorMessage(getConfig().getString("messages.playerInventoryFull").replaceAll("%PLAYER%", p.getName())));
+				                            sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "playerInventoryFull").replaceAll("%PLAYER%", p.getName())));
 			                            }
 			                        } else {
-			                            sender.sendMessage(ColorMessage(getConfig().getString("messages.playerNotFound").replaceAll("%PLAYER%", name)));
+			                            sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "playerNotFound").replaceAll("%PLAYER%", name)));
 			                        }
 		                        };
 		                        
 		                        Thread thread = new Thread(playerSearch);
 		                        thread.start();
 		                    } else {
-		                        sender.sendMessage(ColorMessage(getConfig().getString("messages.blockNotSpecified").replaceAll("%BLOCK%", block.toLowerCase().replace("_", " "))));
+		                        sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "blockNotSpecified").replaceAll("%BLOCK%", block.toLowerCase().replace("_", " "))));
 		                        return true;
 		                    }
 	                    } else {
-	                    	sender.sendMessage(ColorMessage(getConfig().getString("messages.blockDoesntExist").replaceAll("%BLOCK%", block)));
+	                    	sender.sendMessage(ColorMessage(getConfig().getString(messagesIdentifier + "." + "blockDoesntExist").replaceAll("%BLOCK%", block)));
 	                    }
 	                } else {
 	                	noPerm();
@@ -372,42 +389,42 @@ public class AutoRegion extends JavaPlugin {
     }
 
     public void noPerm() {
-        cmdSender.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString("messages.noPermission")));
+        cmdSender.sendMessage(ChatColor.translateAlternateColorCodes('&', getConfig().getString(messagesIdentifier + "." + "noPermission")));
     }
 
     private void initializeFiles() {
         msgServer("Loading config...");
         
-        configf = new File(getDataFolder(), "config.yml");
-        blocksf = new File(getDataFolder(), "blocks.yml");
+        configFile = new File(getDataFolder(), "config.yml");
+        blockFile = new File(getDataFolder(), "blocks.yml");
         
-        if (!configf.exists()) {
+        if (!configFile.exists()) {
             msgServer("Couldn't find config! Creating it...");
-            configf.getParentFile().mkdirs();
+            configFile.getParentFile().mkdirs();
             saveResource("config.yml", false);
             msgServer("Successfully created config!");
         }
 
-        if (!blocksf.exists()) {
+        if (!blockFile.exists()) {
             msgServer("Couldn't find block configuration! Creating it...");
-            blocksf.getParentFile().mkdirs();
+            blockFile.getParentFile().mkdirs();
             saveResource("blocks.yml", false);
             msgServer("Successfully created block configuration!");
         }
 
         config = new YamlConfiguration();
-        blocks = new YamlConfiguration();
+        blockConfig = new YamlConfiguration();
 
         try {
-            config.load(configf);
-            blocks.load(blocksf);
+            config.load(configFile);
+            blockConfig.load(blockFile);
         } catch (InvalidConfigurationException | IOException e) {
             e.printStackTrace();
         }
 
         try {
-            config.save(configf);
-            blocks.save(blocksf);
+            config.save(configFile);
+            blockConfig.save(blockFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -416,13 +433,13 @@ public class AutoRegion extends JavaPlugin {
     }
 
     public FileConfiguration getBlockConfig() {
-        return blocks;
+        return blockConfig;
     }
 
     public void saveBlockConfig() {
-        if (blocks != null && blocksf != null) {
+        if (blockConfig != null && blockFile != null) {
             try {
-                getBlockConfig().save(blocksf);
+                getBlockConfig().save(blockFile);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -447,6 +464,7 @@ public class AutoRegion extends JavaPlugin {
     		msgServer("WorldGuard not found!");
     		return false;
     	}
+    	
     	return true;
     }
     
@@ -467,11 +485,22 @@ public class AutoRegion extends JavaPlugin {
     }
     
     public int getRadius(String blockName) {
-    	radius = 2 * getBlockConfig().getInt("Blocks." + blockName + ".radius") + 1;
-    	return radius;
+    	return getBlockConfig().getInt(blocksIdentifier + "." + blockName + "." + radiusIdentifier);
     }
     
-    public String getItemName() {
-    	return "§b" + getConfig().getString("itemName").replaceAll("%RADIUS%", Integer.toString(radius));
+    public int getDiameter(String blockName) {
+    	return 2 * getRadius(blockName) +1;
+    }
+    
+    public String getItemName(int radius) {
+    	return "§b" + getConfig().getString("itemName").replaceAll("%DIAMETER%", Integer.toString(radius));
+    }
+    
+    public int getRegionCount(UUID UUID) {
+    	return getConfig().getInt(playerIdentifier + "." + UUID.toString() + "." + regionsIdentifier + "." + regionCountIdentifier);
+    }
+    
+    public int getRegionCreatorsReceived(UUID UUID) {
+    	return getConfig().getInt(playerIdentifier + "." + UUID.toString() + "." + regionsIdentifier + "." + regionCreatorsReceivedIdentifier);
     }
 }
