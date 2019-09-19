@@ -39,7 +39,7 @@ permissions:
   autoregion.remove:
     description: Allow you to remove a block from the config!
   autoregion.help:
-    description: Allows you to use '/autoregion help'!
+    description: Allows you to display a list with all commands!
   autoregion.disable:
     description: Allows you to disable the plugin!
   autoregion.confirmdisable:
