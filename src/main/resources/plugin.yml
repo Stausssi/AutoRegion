@@ -1,5 +1,6 @@
 name: AutoRegion
 version: '${project.version}'
+author: Stausssi
 main: io.stausssi.plugins.autoregion.AutoRegion
 api-version: 1.19
 website: https://www.curseforge.com/minecraft/bukkit-plugins/autoregion
