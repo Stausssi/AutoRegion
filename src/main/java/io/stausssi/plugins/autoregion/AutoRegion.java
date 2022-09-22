@@ -1,4 +1,4 @@
-package com.stausssi.AutoRegion;
+package io.stausssi.plugins.autoregion;
 
 import java.io.File;
 import java.io.IOException;
@@ -65,7 +65,7 @@ public class AutoRegion extends JavaPlugin {
     	// Initialize Prefixes
         sysPrefix = "[" + name + "] ";
         prefix = ChatColor.translateAlternateColorCodes('&', getConfig().getString("prefix"));
-        wideChatPrefix = "§8-------- " + prefix + "--------\n";
+        wideChatPrefix = "ï¿½8-------- " + prefix + "--------\n";
         
         // Initialize ItemLore
         lore = new ArrayList<String>();
@@ -201,15 +201,15 @@ public class AutoRegion extends JavaPlugin {
                     if (sender.hasPermission("autoregion.help")) {
                         sender.sendMessage(
                         		wideChatPrefix
-                        		+ "§6/autoregion disable §7- Disables the plugin\n"
-                        		+ "§6/autoregion updates [enable/disable] §7- Enables/Disables automatic updating\n"
-                        		+ "§6/autoregion list §7- Gives you a list of all RegionCreators\n"
-                        		+ "§6/autoregion help §7- Displays a list with all commands\n"
-                        		+ "§6/autoregion add [BlockName] [Radius] §7- Adds a RegionCreator to the config\n"
-                        		+ "§6/autoregion remove [BlockName] §7- Removes a RegionCreator from the config\n"
-                        		+ "§6/autoregion give [BlockName] [Player] §7- Gives a player a RegionCreator to create a region\n"
+                        		+ "ï¿½6/autoregion disable ï¿½7- Disables the plugin\n"
+                        		+ "ï¿½6/autoregion updates [enable/disable] ï¿½7- Enables/Disables automatic updating\n"
+                        		+ "ï¿½6/autoregion list ï¿½7- Gives you a list of all RegionCreators\n"
+                        		+ "ï¿½6/autoregion help ï¿½7- Displays a list with all commands\n"
+                        		+ "ï¿½6/autoregion add [BlockName] [Radius] ï¿½7- Adds a RegionCreator to the config\n"
+                        		+ "ï¿½6/autoregion remove [BlockName] ï¿½7- Removes a RegionCreator from the config\n"
+                        		+ "ï¿½6/autoregion give [BlockName] [Player] ï¿½7- Gives a player a RegionCreator to create a region\n"
                         		+ "\n"
-                        		+ "§4[BlockName] has to be a valid RegionCreator, for instance: 'DIAMOND_ORE'");
+                        		+ "ï¿½4[BlockName] has to be a valid RegionCreator, for instance: 'DIAMOND_ORE'");
                     } else {
                     	noPerm();
                     }
@@ -222,11 +222,11 @@ public class AutoRegion extends JavaPlugin {
                 		
                 		// Get all registered RegionCreators
                 		for(String key : getBlockConfig().getConfigurationSection(blocksIdentifier).getKeys(false)) {
-                			regionCreators += "§6";
+                			regionCreators += "ï¿½6";
                 			// Add the name of the RegionCreator
                 			regionCreators += key;
                 			// Add the size of the region
-                			regionCreators += " §7- " + getConfig().getString("itemName").replaceAll("%DIAMETER%",  Integer.toString(getDiameter(key)));
+                			regionCreators += " ï¿½7- " + getConfig().getString("itemName").replaceAll("%DIAMETER%",  Integer.toString(getDiameter(key)));
                 			// New line
                 			regionCreators += "\n";
                 		}
@@ -601,7 +601,7 @@ public class AutoRegion extends JavaPlugin {
     
     // Return the ItemName with the specified diameter
     public String getItemName(int diameter) {
-    	return "§b" + getConfig().getString("itemName").replaceAll("%DIAMETER%", Integer.toString(diameter));
+    	return "ï¿½b" + getConfig().getString("itemName").replaceAll("%DIAMETER%", Integer.toString(diameter));
     }
     
     // Return the players region count

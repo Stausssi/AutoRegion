@@ -1,4 +1,4 @@
-package com.stausssi.AutoRegion;
+package io.stausssi.plugins.autoregion;
 
 import java.io.*;
 import java.net.HttpURLConnection;

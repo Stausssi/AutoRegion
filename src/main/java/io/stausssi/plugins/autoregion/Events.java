@@ -1,4 +1,4 @@
-package com.stausssi.AutoRegion;
+package io.stausssi.plugins.autoregion;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;

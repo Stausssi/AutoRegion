@@ -1,8 +1,8 @@
 name: AutoRegion
-version: 0.6.1
-author: Crotex
-main: com.stausssi.AutoRegion.AutoRegion
-website: https://dev.bukkit.org/projects/autoregion
+version: '${project.version}'
+main: io.stausssi.plugins.autoregion.AutoRegion
+api-version: 1.19
+website: https://www.curseforge.com/minecraft/bukkit-plugins/autoregion
 softdepend: [WorldGuard, WorldEdit]
 
 commands:
@@ -10,7 +10,7 @@ commands:
     description: Main Command
     usage: Wrong Syntax! Use '/<command> help' for help!
     permission: autoregion.autoregion
-    
+
 permissions:
   autoregion.*:
     default: op
