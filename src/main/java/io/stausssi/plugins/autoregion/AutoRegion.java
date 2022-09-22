@@ -81,7 +81,8 @@ public class AutoRegion extends JavaPlugin {
         getConfig().options().copyDefaults(true);
 
         // Check whether automatic updating is enabled in the config
-        if (getConfig().getBoolean("auto-update")) {
+        // IMPORTANT: Auto-Updater is currently disabled
+        if (getConfig().getBoolean("auto-update") && false) {
             // Check for updates
             msgServer("Checking for updates...");
 
