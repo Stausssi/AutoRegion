@@ -10,12 +10,14 @@ import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
+
+import javax.json.JsonValue;
 
 /**
  * Check for updates on BukkitDev for a given plugin, and download the updates if needed.
@@ -671,7 +673,7 @@ public class Updater {
             final BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
             final String response = reader.readLine();
 
-            final JSONArray array = (JSONArray) JSONValue.parse(response);
+            final JsonArray array = (JsonArray) JsonParser.parseString(response);
 
             if (array.isEmpty()) {
                 this.plugin.getLogger().warning("The updater could not find any files for the project id " + this.id);
@@ -679,11 +681,11 @@ public class Updater {
                 return false;
             }
 
-            JSONObject latestUpdate = (JSONObject) array.get(array.size() - 1);
-            this.versionName = (String) latestUpdate.get(Updater.TITLE_VALUE);
-            this.versionLink = (String) latestUpdate.get(Updater.LINK_VALUE);
-            this.versionType = (String) latestUpdate.get(Updater.TYPE_VALUE);
-            this.versionGameVersion = (String) latestUpdate.get(Updater.VERSION_VALUE);
+            JsonObject latestUpdate = (JsonObject) array.get(array.size() - 1);
+            this.versionName = latestUpdate.get(Updater.TITLE_VALUE).toString();
+            this.versionLink = latestUpdate.get(Updater.LINK_VALUE).toString();
+            this.versionType = latestUpdate.get(Updater.TYPE_VALUE).toString();
+            this.versionGameVersion = latestUpdate.get(Updater.VERSION_VALUE).toString();
 
             return true;
         } catch (final IOException e) {
