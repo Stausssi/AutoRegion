@@ -1,3 +1,6 @@
+v0.6.2
+- Support for MC 1.17+
+
 v0.6.1
 - Code cleanup
 - Now saving how many RegionCreators a player has received 
