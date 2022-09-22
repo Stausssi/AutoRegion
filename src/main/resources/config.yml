@@ -14,7 +14,7 @@ messages:
   updatesEnabled: "&6Successfully &aenabled&6 automatic updates!"
   updatesAlreadyEnabled: "&cAutomatic updates are enabled already!"
   list: "&7The following blocks are currently registered as RegionCreators:"
-  noValidNumber: "&cThe Number you speicified (%NUMBER%) isn't a valid number!"
+  noValidNumber: "&cThe Number you specified (%NUMBER%) isn't a valid number!"
   blockAdded: "&6Successfully added %BLOCK% with a radius of %RADIUS%!"
   blockAlreadyAdded: "&c%BLOCK% has been added before!"
   blockNotAdded: "&cThe block you tried to remove doesn't exist!"
