@@ -22,7 +22,7 @@ messages:
   blockRemoved: "&6Successfully removed %BLOCK% from the config!"
   blockDoesntExist: "&cThe block you specified (%BLOCK%) isn't a valid block! Check for any spelling mistakes!"
   regionCreated: |
-                  &6Succesfully created Region!
+                  &6Successfully created Region!
                   Owner: %OWNER%
   regionIntersecting: "&cThe region you tried to create is intersecting with another region!"
   searchingPlayer: "&cSearching for player %PLAYER%..."

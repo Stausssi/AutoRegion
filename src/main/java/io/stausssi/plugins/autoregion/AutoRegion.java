@@ -1,6 +1,7 @@
 package io.stausssi.plugins.autoregion;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,9 +28,6 @@ public class AutoRegion extends JavaPlugin {
     private final String version = getDescription().getVersion();
     private final String author = getDescription().getAuthors().get(0);
 
-    // Create prefixes
-    private final String sysPrefix, prefix, wideChatPrefix;
-
     // Declare Identifiers for the config and blocks file
     public static String messagesIdentifier = "messages";
 
@@ -44,47 +42,36 @@ public class AutoRegion extends JavaPlugin {
     public static String blocksIdentifier = "Blocks";
     public static String radiusIdentifier = "radius";
 
-    // Create the file instances for the configuration and blocks file
-    private FileConfiguration blockConfig;
-    private File blockFile;
+    private final ConfigHandler configHandler = ConfigHandler.getInstance();
+    private final MessageHandler messageHandler = MessageHandler.getInstance();
 
     // CommandSender needed for noPerm()
     private CommandSender cmdSender;
 
     //ItemLore List
-    List<String> lore;
+    List<String> lore = new ArrayList<>();
 
 
-    private boolean disableRequest;
+    private boolean disableRequest = false;
 
     // UUID Object for player handling
     UUID UUID;
 
 
-    public AutoRegion() {
-        // Initialize Prefixes
-        sysPrefix = "[" + name + "] ";
-        prefix = ChatColor.translateAlternateColorCodes(
-                '&', getConfig().getString("prefix", "PREFIX_MISSING")
-        );
-        wideChatPrefix = "§8-------- " + prefix + "--------\n";
+    public AutoRegion() {}
 
-        // Initialize ItemLore
-        lore = new ArrayList<>();
-
-        // No disable request yet
-        disableRequest = false;
-    }
-
+    /**
+     * Called when the Plugin is being enabled. Prepares the config files, static variables, etc.
+     */
     public void onEnable() {
-        initializeFiles();
-        getConfig().options().copyDefaults(true);
+        configHandler.init(this);
+        messageHandler.init(name);
 
         // Check whether automatic updating is enabled in the config
         // IMPORTANT: Auto-Updater is currently disabled
         if (getConfig().getBoolean("auto-update") && false) {
             // Check for updates
-            msgServer("Checking for updates...");
+            logConsole("Checking for updates...");
 
             @SuppressWarnings("unused")
             Updater updater = new Updater(this, 285923, this.getFile(), Updater.UpdateType.DEFAULT, true);
@@ -93,73 +80,74 @@ public class AutoRegion extends JavaPlugin {
             switch (result) {
                 case SUCCESS:
                     // Success: The updater found an update, and has readied it to be loaded the next time the server restarts/reloads
-                    msgServer("Update found and ready to install!");
+                    logConsole("Update found and ready to install!");
                     break;
                 case NO_UPDATE:
                     // No Update: The updater did not find an update, and nothing was downloaded.
-                    msgServer("No update found!");
+                    logConsole("No update found!");
                     break;
                 case DISABLED:
                     // Won't Update: The updater was disabled in its configuration file.
-                    msgServer("Auto-Updater is disabled in global config!");
+                    logConsole("Auto-Updater is disabled in global config!");
                     break;
                 case FAIL_DOWNLOAD:
                     // Download Failed: The updater found an update, but was unable to download it.
-                    msgServer("Unable to download update!");
+                    logConsole("Unable to download update!");
                     break;
                 case FAIL_DBO:
                     // dev.bukkit.org Failed: For some reason, the updater was unable to contact DBO to download the file.
-                    msgServer("Unable to connect to Bukkit!");
+                    logConsole("Unable to connect to Bukkit!");
                     break;
                 case FAIL_NOVERSION:
                     // No version found: When running the version check, the file on DBO did not contain the a version in the format 'vVersion' such as 'v1.0'.
-                    msgServer("Versions do not match. No update installed!");
+                    logConsole("Versions do not match. No update installed!");
                     break;
                 case FAIL_BADID:
                     // Bad id: The id provided by the plugin running the updater was invalid and doesn't exist on DBO.
-                    msgServer("PluginID is invalid. Please contact the developer!");
+                    logConsole("PluginID is invalid. Please contact the developer!");
                     break;
                 case FAIL_APIKEY:
                     // Bad API key: The user provided an invalid API key for the updater to use.
-                    msgServer("API key is invalid. Please contact the developer!");
+                    logConsole("API key is invalid. Please contact the developer!");
                     break;
                 case UPDATE_AVAILABLE:
                     // There was an update found, but because you had the UpdateType set to NO_DOWNLOAD, it was not downloaded.
-                    msgServer("Update found but not downloaded!");
+                    logConsole("Update found but not downloaded!");
                     break;
             }
         }
 
-        // Check whether WorldEdit and WorldGuard are installed
-        msgServer("Searching Dependencies...");
+        logConsole("Searching Dependencies...");
 
-        if (dependenciesInstalled()) {
-            // Load ItemLore from config and add it to the List
-            msgServer("Applying ItemLore...");
-            lore.add("");
-            lore.add(getConfig().getString("lore"));
-            msgServer("Lore applied!");
-
-            // Register EventHandler
-            msgServer("Loading EventHandler...");
-            getServer().getPluginManager().registerEvents(new Events(this), this);
-            msgServer("EventHandler loaded!");
-
-            msgServer("Successfully enabled " + name + " v" + version + " by " + author + "!");
-        } else {
-            // Don't continue without WorldEdit and/or WorldGuard
+        // Don't continue without WorldEdit and/or WorldGuard
+        if (!dependenciesInstalled()) {
             disablePlugin();
+            return;
         }
+
+        // Load ItemLore from config and add it to the List
+        logConsole("Applying ItemLore...");
+        lore.add("");
+        lore.add(getConfig().getString("lore"));
+        logConsole("Lore applied!");
+
+        // Register EventHandler
+        logConsole("Loading EventHandler...");
+        getServer().getPluginManager().registerEvents(new Events(this), this);
+        logConsole("EventHandler loaded!");
+
+        logConsole("Successfully enabled " + name + " v" + version + " by " + author + "!");
     }
 
+    /**
+     * Called when the Plugin is being disabled. Persists changes in the config file.
+     */
     public void onDisable() {
         // Save configuration files
-        msgServer("Saving config...");
-        saveBlockConfig();
-        saveConfig();
-        msgServer("Configs saved!");
+        configHandler.save();
 
-        msgServer("Successfully disabled " + name + " v" + version + " by " + author + "!");
+
+        logConsole("Successfully disabled " + name + " v" + version + " by " + author + "!");
     }
 
 
@@ -535,17 +523,25 @@ public class AutoRegion extends JavaPlugin {
         return false;
     }
 
-    // Message the console
-    private void msgServer(String msg) {
+    /**
+     * Logs a message to the server console.
+     *
+     * @param msg The message to print.
+     */
+    private void logConsole(String msg) {
         System.out.println(sysPrefix + msg);
     }
 
-    // Disable the plugin
+    /**
+     * Disables this Plugin.
+     */
     private void disablePlugin() {
         getServer().getPluginManager().disablePlugin(this);
     }
 
-    // No Permission message
+    /**
+     * Notifies the user that they don't have sufficient privilege to execute the action.
+     */
     public void noPerm() {
         cmdSender.sendMessage(
                 ChatColor.translateAlternateColorCodes(
@@ -554,83 +550,18 @@ public class AutoRegion extends JavaPlugin {
         );
     }
 
-    // Initialize the configuration files
-    private void initializeFiles() {
-        msgServer("Loading config...");
-
-        // Check whether the folder exists
-        File dataFolder = getDataFolder();
-
-        if (!dataFolder.exists() && dataFolder.mkdirs()) {
-            msgServer("Created AutoRegion directory!");
-        }
-
-        // Create file instances
-        File configFile = new File(getDataFolder(), "config.yml");
-        blockFile = new File(getDataFolder(), "blocks.yml");
-
-        for (File f : new File[]{configFile, blockFile}) {
-            // Check whether the file exists
-            if (!f.exists()) {
-                String fileName = f.getName();
-
-                msgServer("Couldn't find " + fileName + "! Creating it...");
-
-                // Create the config file
-                saveResource(fileName, false);
-
-                msgServer("Successfully created " + fileName + "!");
-            }
-        }
-
-        // Create YAML Configuration instances
-        FileConfiguration config = new YamlConfiguration();
-        blockConfig = new YamlConfiguration();
-
-        // Try loading the config into the files 
-        try {
-            config.load(configFile);
-            blockConfig.load(blockFile);
-        } catch (InvalidConfigurationException | IOException e) {
-            e.printStackTrace();
-        }
-
-        // Try saving the files
-        try {
-            config.save(configFile);
-            blockConfig.save(blockFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        msgServer("Configs successfully loaded!");
-    }
-
-    // Save BlockConfig
-    public void saveBlockConfig() {
-        // Check whether the blockConfig exists
-        if (blockConfig != null && blockFile != null) {
-            // Try saving the BlockConfig
-            try {
-                getBlockConfig().save(blockFile);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
     // Decode color codes from the config
     public String colorMessage(String msg) {
+        // TODO: Only give the config key here with the option to turn the prefix off
         msg = prefix + ChatColor.translateAlternateColorCodes('&', msg);
         return msg;
     }
 
-    // Return BlockConfig instance
-    public FileConfiguration getBlockConfig() {
-        return blockConfig;
-    }
-
-    // Check whether necessary dependencies are installed
+    /**
+     * Checks whether both WorldGuard and WorldEdit are installed.
+     *
+     * @return True, if both are installed. False otherwise.
+     */
     private boolean dependenciesInstalled() {
         PluginManager pluginManager = getServer().getPluginManager();
 
@@ -638,24 +569,25 @@ public class AutoRegion extends JavaPlugin {
         for (String pluginName : new String[]{"WorldEdit", "WorldGuard"}) {
             Plugin plugin = pluginManager.getPlugin(pluginName);
 
-            if (plugin != null) {
-                msgServer("Found " + pluginName + " v" + plugin.getDescription().getVersion() + "!");
-            } else {
-                msgServer(pluginName + " not found!");
+            if (plugin == null) {
+                logConsole(pluginName + " not found!");
                 return false;
             }
+
+            logConsole("Found " + pluginName + " v" + plugin.getDescription().getVersion() + "!");
         }
 
         return true;
     }
 
-    // Check whether the Material is a valid Block
+    /**
+     * Checks whether the given Material is not Null and a valid block.
+     *
+     * @param m The material to check.
+     * @return True, if the given material is not Null and a block. False otherwise.
+     */
     private boolean isBlock(Material m) {
-        if (m != null) {
-            return m.isBlock();
-        } else {
-            return false;
-        }
+        return m != null && m.isBlock();
     }
 
     // Return the List containing the ItemLore
