@@ -9,7 +9,7 @@ softdepend: [WorldGuard, WorldEdit]
 commands:
   autoregion:
     description: Main Command
-    usage: Wrong Syntax! Use '/<command> help' for help!
+    usage: Wrong Syntax! Use '/autoregion help' for help!
     permission: autoregion.autoregion
 
 permissions:

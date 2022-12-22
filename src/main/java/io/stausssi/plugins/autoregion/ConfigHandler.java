@@ -33,7 +33,8 @@ public class ConfigHandler {
     private FileConfiguration blockConfig, pluginConfig;
     private File blockFile, configFile;
 
-    private ConfigHandler() {}
+    private ConfigHandler() {
+    }
 
     public static ConfigHandler getInstance() {
         return instance;
@@ -141,6 +142,10 @@ public class ConfigHandler {
         return String.join(".", keys);
     }
 
+    public String getLore() {
+        return pluginConfig.getString("lore", "lore not found!");
+    }
+
     /**
      * Gets a message String with the given key from the plugin config.
      *
@@ -166,7 +171,7 @@ public class ConfigHandler {
      * Either gets the number of regions a player has created with RegionCreators or the maximum number of regions a
      * group can create.
      *
-     * @param key The UUID of the player or the name of the group.
+     * @param key     The UUID of the player or the name of the group.
      * @param isGroup If true, retrieve the region count instead of the player count.
      * @return The number of regions.
      */
