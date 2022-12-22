@@ -30,6 +30,19 @@ public class MessageHandler {
     }
 
     /**
+     * Checks whether this class has been initialized. If not, a message will be printed to the console.
+     *
+     * @return Whether the init method was called.
+     */
+    private boolean checkInit() {
+        if (!initialized) {
+            System.out.println("MessageHandler has not been initialized yet. Please call init() first!");
+        }
+
+        return initialized;
+    }
+
+    /**
      * Colors the given string.
      *
      * @param str The string to color
@@ -55,7 +68,9 @@ public class MessageHandler {
      * @param prefix Whether the message should be prefixed with this plugins name.
      */
     public void logServerConsole(String msg, boolean prefix) {
-        System.out.println(prefix ? sysPrefix + msg : msg);
+        if (!prefix || checkInit()) {
+            System.out.println(prefix ? sysPrefix + msg : msg);
+        }
     }
 
     /**
@@ -152,6 +167,11 @@ public class MessageHandler {
      * @param widePrefix   Whether the wide prefix spanning an entire chat line should be used.
      */
     public void sendMessage(CommandSender player, String message, boolean color, Map<String, String> replacements, boolean fromConfig, boolean prefix, boolean widePrefix) {
+        // Force the class to be initialized if prefixes are used
+        if ((prefix || widePrefix) && !checkInit()) {
+            return;
+        }
+
         if (fromConfig) {
             message = configHandler.getMessage(message);
         }
