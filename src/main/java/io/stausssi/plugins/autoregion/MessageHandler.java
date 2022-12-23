@@ -21,6 +21,11 @@ public class MessageHandler {
         return instance;
     }
 
+    /**
+     * Initialize the prefixes for chat messages depending on the name of the plugin.
+     *
+     * @param pluginName The name of the plugin. Should be retrieved via the plugin.yml to have a consistent name.
+     */
     public void init(String pluginName) {
         sysPrefix = String.format("[%s]", pluginName);
         prefix = ChatColor.translateAlternateColorCodes('&', getConfig().getString("prefix", "PREFIX_MISSING"));

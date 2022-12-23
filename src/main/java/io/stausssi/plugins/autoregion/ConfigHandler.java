@@ -3,10 +3,14 @@ package io.stausssi.plugins.autoregion;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Provides useful methods to handle the configuration files.
@@ -142,8 +146,25 @@ public class ConfigHandler {
         return String.join(".", keys);
     }
 
+    public String getString(String key) {
+        return getString(key, null);
+    }
+
+    public String getString(String key, String defaultValue) {
+        if (defaultValue == null) {
+            defaultValue = String.format("String with '%s' not present in config!", key);
+        }
+
+        return pluginConfig.getString(key, defaultValue);
+    }
+
+    /**
+     * Gets the String representing the RegionCreator lore from the config.
+     *
+     * @return The item lore configured in the file.
+     */
     public String getLore() {
-        return pluginConfig.getString("lore", "lore not found!");
+        return pluginConfig.getString("lore", "Lore not found!");
     }
 
     /**
@@ -158,13 +179,31 @@ public class ConfigHandler {
     }
 
     /**
+     * Update the config if a player received a RegionCreator.
+     *
+     * @param player The player that received the RegionCreator.
+     */
+    public void addRegionCreator(Player player) {
+        UUID playerID = player.getUniqueId();
+        String UUID = String.valueOf(playerID);
+
+        int currentCount = getRegionCount(UUID);
+
+        // Add 1 to received RegionCreators
+        pluginConfig.set(createIdentifier(playerIdentifier, UUID, regionsIdentifier, regionCreatorsReceivedIdentifier), currentCount + 1);
+
+        // Update the players name
+        pluginConfig.set(createIdentifier(playerIdentifier, UUID, nameIdentifier), player.getName());
+    }
+
+    /**
      * Gets the number of regions a player has created with RegionCreators.
      *
-     * @param key The UUID of the player (I think).
+     * @param UUID The UUID of the player.
      * @return The number of regions.
      */
-    public int getRegionCount(String key) {
-        return getRegionCount(key, false);
+    public int getRegionCount(String UUID) {
+        return getRegionCount(UUID, false);
     }
 
     /**
@@ -178,6 +217,103 @@ public class ConfigHandler {
     public int getRegionCount(String key, boolean isGroup) {
         key = createIdentifier(isGroup ? groupIdentifier : playerIdentifier, key);
         return pluginConfig.getInt(key, 0);
+    }
+
+    /**
+     * Gets all registered RegionCreators from the config.
+     *
+     * @return A set of all registered Region Creators.
+     */
+    public Set<String> getRegionCreators() {
+        return Objects.requireNonNull(blockConfig.getConfigurationSection(blocksIdentifier)).getKeys(false);
+    }
+
+    /**
+     * Get the configured radius of the RegionCreator with the given name.
+     *
+     * @param blockIdentifier The name of the block in IDENTIFIER_FORMAT.
+     * @return The radius if found, 0 as default.
+     */
+    public int getRadius(String blockIdentifier) {
+        return blockConfig.getInt(createIdentifier(createBlockConfigIdentifier(blockIdentifier), radiusIdentifier), 0);
+    }
+
+    /**
+     * Get the configured diameter of the RegionCreator with the given name. This is the radius * 2 + 1
+     *
+     * @param blockIdentifier The name of the block in IDENTIFIER_FORMAT.
+     * @return The diameter.
+     */
+    public int getDiameter(String blockIdentifier) {
+        return 2 * getRadius(blockIdentifier) + 1;
+    }
+
+    /**
+     * Create the item name of the RegionCreator.
+     *
+     * @param blockIdentifier The name of the block in IDENTIFIER_FORMAT.
+     * @return The item name.
+     */
+    public String createItemName(String blockIdentifier) {
+        return Objects.requireNonNull(pluginConfig.getString("itemName")).replace("%DIAMETER%", String.valueOf(getDiameter(blockIdentifier)));
+    }
+
+    /**
+     * Create the identifier of the block in the config
+     *
+     * @param blockIdentifier The name of the block in IDENTIFIER_FORMAT.
+     * @return The key to retrieve the block config values with.
+     */
+    private String createBlockConfigIdentifier(String blockIdentifier) {
+        return createIdentifier(blocksIdentifier, BlockNameConverter.toIdentifier(blockIdentifier));
+    }
+
+    /**
+     * Returns whether the given block is registered as a RegionCreator.
+     *
+     * @param blockIdentifier The name of the block in IDENTIFIER_FORMAT.
+     * @return true, if there is an entry in the config for the block. False if no entry is present.
+     */
+    public boolean isRegionCreator(String blockIdentifier) {
+        return blockConfig.get(createBlockConfigIdentifier(blockIdentifier)) != null;
+    }
+
+    /**
+     * Tries to delete a RegionCreator by removing it from the config.
+     *
+     * @param blockIdentifier The name of the block in IDENTIFIER_FORMAT.
+     * @return true, if the block was removed. False, if the block is not a registered RegionCreator.
+     */
+    public boolean deleteRegionCreator(String blockIdentifier) {
+        if (!isRegionCreator(blockIdentifier)) {
+            return false;
+        }
+
+        blockConfig.set(createBlockConfigIdentifier(blockIdentifier), null);
+        save();
+
+        return true;
+
+    }
+
+    /**
+     * Tries to add a RegionCreator by adding it to the config.
+     *
+     * @param blockIdentifier The name of the block in IDENTIFIER_FORMAT.
+     * @return true, if the block was added. False, if the block is already a registered RegionCreator.
+     */
+    public boolean addRegionCreator(String blockIdentifier, int radius) {
+        if (isRegionCreator(blockIdentifier)) {
+            return false;
+        }
+
+        blockIdentifier = createBlockConfigIdentifier(blockIdentifier);
+        blockConfig.set(blockIdentifier, "");
+        blockConfig.set(createIdentifier(blockIdentifier, radiusIdentifier), radius);
+        save();
+
+        return true;
+
     }
 }
 

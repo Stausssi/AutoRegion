@@ -1,7 +1,6 @@
 package io.stausssi.plugins.autoregion;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -21,26 +20,12 @@ public class AutoRegion extends JavaPlugin {
     private final String version = getDescription().getVersion();
     private final String author = getDescription().getAuthors().get(0);
 
-    public static String nameIdentifier = "name";
-    public static String regionsIdentifier = "regions";
-    public static String regionCountIdentifier = "regionCount";
-    public static String regionCreatorsReceivedIdentifier = "regionCreatorsReceived";
-
-    public static String blocksIdentifier = "Blocks";
-    public static String radiusIdentifier = "radius";
-
     private final ConfigHandler configHandler = ConfigHandler.getInstance();
     private final MessageHandler messageHandler = MessageHandler.getInstance();
 
-    //ItemLore List
     List<String> lore = new ArrayList<>();
 
-
-    private boolean disableRequest = false;
-
-    // UUID Object for player handling
-    UUID UUID;
-
+    private boolean disableRequest;
 
     public AutoRegion() {
     }
@@ -146,7 +131,8 @@ public class AutoRegion extends JavaPlugin {
         }
 
         // Needed for adding / removing / giving RegionCreators
-        String block, blockName;
+        // Identifier is UPPER_CASE and name is human-readable
+        String blockIdentifier, blockName;
         Material m;
 
         switch (args.length) {
@@ -203,24 +189,27 @@ public class AutoRegion extends JavaPlugin {
                     StringBuilder regionCreators = new StringBuilder();
 
                     // Get all registered RegionCreators
-                    for (String key : getBlockConfig().getConfigurationSection(blocksIdentifier).getKeys(false)) {
+                    for (String regionCreatorName : configHandler.getRegionCreators()) {
                         regionCreators.append("§6");
                         // Add the name of the RegionCreator
-                        regionCreators.append(key);
+                        regionCreators.append(regionCreatorName);
                         // Add the size of the region
-                        regionCreators.append(" §7- ").append(getConfig().getString(
-                                "itemName",
-                                "ITEM_NAME_MISSING"
-                        ).replaceAll("%DIAMETER%", Integer.toString(getDiameter(key))));
+                        regionCreators.append(" §7- ").append(configHandler.createItemName(regionCreatorName));
                         // New line
                         regionCreators.append("\n");
                     }
 
-                    sender.sendMessage(
-                            wideChatPrefix
-                                    + ChatColor.translateAlternateColorCodes('&', getConfig().getString(messagesIdentifier + "." + "list", "LIST_MESSAGE_MISSING"))
+                    messageHandler.sendMessage(
+                            sender,
+                            configHandler.getMessage("list")
                                     + "\n"
-                                    + regionCreators);
+                                    + regionCreators,
+                            true,
+                            null,
+                            false,
+                            false,
+                            true
+                    );
                 } else {
                     messageHandler.noPermission(sender);
                 }
@@ -234,30 +223,22 @@ public class AutoRegion extends JavaPlugin {
             // Remove Block Command
             if (args[0].equalsIgnoreCase("remove")) {
                 if (sender.hasPermission("autoregion.remove")) {
-                    // Get blockName from the 2nd argument
-                    blockName = args[1].toUpperCase();
+                    // Get block from the 2nd argument
+                    blockIdentifier = BlockNameConverter.toIdentifier(args[1]);
 
                     // Convert to Material
-                    m = Material.getMaterial(blockName);
+                    m = Material.getMaterial(blockIdentifier);
 
                     // "Restyle" BlockName for better chat appearance
-                    block = blockName.toLowerCase().replace("_", "");
+                    blockName = BlockNameConverter.toReadable(blockIdentifier);
 
                     // Check if userInput is a valid block
                     if (isBlock(m)) {
+                        boolean removed = configHandler.deleteRegionCreator(blockIdentifier);
 
-                        // Check whether the BlockConfig has an entry for the specified Block
-                        if (getBlockConfig().get(blocksIdentifier + "." + blockName) == null) {
-                            messageHandler.sendMessage(sender, "blockNotAdded", Collections.singletonMap("%BLOCK%", block));
-                        } else {
-                            // Set BlockConfig entry to null -> delete it
-                            getBlockConfig().set(blocksIdentifier + "." + blockName, null);
-                            saveBlockConfig();
-
-                            messageHandler.sendMessage(sender, "blockRemoved", Collections.singletonMap("%BLOCK%", block));
-                        }
+                        messageHandler.sendMessage(sender, removed ? "blockRemoved" : "blockNotAdded", Collections.singletonMap("%BLOCK%", blockName));
                     } else {
-                        messageHandler.sendMessage(sender, "blockDoesntExist", Collections.singletonMap("%BLOCK%", block));
+                        messageHandler.sendMessage(sender, "blockDoesntExist", Collections.singletonMap("%BLOCK%", blockName));
                     }
                 } else {
                     messageHandler.noPermission(sender);
@@ -307,13 +288,13 @@ public class AutoRegion extends JavaPlugin {
         // Three arguments
         else if (args.length == 3) {
             // Get blockName from the 2nd argument
-            blockName = args[1].toUpperCase();
+            blockIdentifier = BlockNameConverter.toIdentifier(args[1]);
 
             // Convert to Material
-            m = Material.getMaterial(blockName);
+            m = Material.getMaterial(blockIdentifier);
 
             // "Restyle" BlockName for better chat appearance
-            block = blockName.toLowerCase().replace("_", " ");
+            blockName = BlockNameConverter.toReadable(blockIdentifier);
 
             // Add Command
             if (args[0].equalsIgnoreCase("add")) {
@@ -332,22 +313,16 @@ public class AutoRegion extends JavaPlugin {
                             return true;
                         }
 
-                        // Check whether the BlockConfig has an entry for the specified Block
-                        if (getBlockConfig().get(blocksIdentifier + "." + blockName) != null) {
-                            messageHandler.sendMessage(sender, "blockAlreadyAdded", Collections.singletonMap("%BLOCK%", block));
-                        } else {
-                            // Add Block to the config
-                            getBlockConfig().set(blocksIdentifier + "." + blockName, "");
-                            getBlockConfig().set(blocksIdentifier + "." + blockName + "." + radiusIdentifier, radius);
-                            saveBlockConfig();
+                        // Try adding the block to the config
+                        boolean added = configHandler.addRegionCreator(blockIdentifier, radius);
 
-                            HashMap<String, String> replacements = new HashMap<>();
-                            replacements.put("%BLOCK%", block);
-                            replacements.put("%RADIUS%", String.valueOf(radius));
-                            messageHandler.sendMessage(sender, "blockAdded", replacements);
-                        }
+                        HashMap<String, String> replacements = new HashMap<>();
+                        replacements.put("%BLOCK%", blockName);
+                        replacements.put("%RADIUS%", String.valueOf(radius));
+
+                        messageHandler.sendMessage(sender, added ? "blockAdded" : "blockAlreadyAdded", replacements);
                     } else {
-                        messageHandler.sendMessage(sender, "blockDoesntExist", Collections.singletonMap("%BLOCK%", block));
+                        messageHandler.sendMessage(sender, "blockDoesntExist", Collections.singletonMap("%BLOCK%", blockName));
                     }
                 } else {
                     messageHandler.noPermission(sender);
@@ -359,15 +334,16 @@ public class AutoRegion extends JavaPlugin {
                 if (sender.hasPermission("autoregion.give")) {
                     // Check if userInput is a valid block
                     if (isBlock(m)) {
-                        if (getBlockConfig().get(blocksIdentifier + "." + blockName) != null) {
+                        if (configHandler.isRegionCreator(blockIdentifier)) {
                             // Get playerName from the 3rd argument
                             String name = args[2];
 
-                            // Initialize UUID variable
-                            UUID = null;
 
                             // Search through players in a separate Task
                             Runnable playerSearch = () -> {
+                                // Initialize UUID variable
+                                UUID UUID = null;
+
                                 messageHandler.sendMessage(sender, "searchingPlayer", Collections.singletonMap("%PLAYER%", name));
 
                                 // Loop through every player on the server and check for the same name
@@ -384,7 +360,7 @@ public class AutoRegion extends JavaPlugin {
                                 if (UUID != null) {
                                     Player p = Bukkit.getPlayer(UUID);
 
-                                    int diameter = getDiameter(blockName);
+                                    int diameter = configHandler.getDiameter(blockName);
 
                                     // Create the RegionCreator Item
                                     ItemStack stack = new ItemStack(m);
@@ -404,15 +380,12 @@ public class AutoRegion extends JavaPlugin {
                                         // Add Item to inventory
                                         p.getInventory().addItem(stack);
 
-                                        // +1 regionCreatorsReceived count
-                                        getConfig().set(playerIdentifier + "." + UUID + "." + regionsIdentifier + "." + regionCreatorsReceivedIdentifier, getRegionCreatorsReceived(UUID) + 1);
-
-                                        // Save the players name
-                                        getConfig().set(playerIdentifier + "." + UUID + "." + nameIdentifier, p.getName());
+                                        // Persist the changes to the config
+                                        configHandler.addRegionCreator(p);
 
                                         // Message both giver and receiver
                                         HashMap<String, String> replacements = new HashMap<>();
-                                        replacements.put("%BLOCK%", block);
+                                        replacements.put("%BLOCK%", blockIdentifier);
                                         replacements.put("%PLAYER%", p.getName());
                                         replacements.put("%DIAMETER%", Integer.toString(diameter));
 
@@ -430,11 +403,11 @@ public class AutoRegion extends JavaPlugin {
                             Thread thread = new Thread(playerSearch);
                             thread.start();
                         } else {
-                            messageHandler.sendMessage(sender, "blockNotSpecified", Collections.singletonMap("%BLOCK%", block));
+                            messageHandler.sendMessage(sender, "blockNotSpecified", Collections.singletonMap("%BLOCK%", blockIdentifier));
                             return true;
                         }
                     } else {
-                        messageHandler.sendMessage(sender, "blockDoesntExist", Collections.singletonMap("%BLOCK%", block));
+                        messageHandler.sendMessage(sender, "blockDoesntExist", Collections.singletonMap("%BLOCK%", blockIdentifier));
                     }
                 } else {
                     messageHandler.noPermission(sender);
@@ -493,28 +466,8 @@ public class AutoRegion extends JavaPlugin {
         return lore;
     }
 
-    // Return the radius of the RegionCreator with the specified name
-    public int getRadius(String blockName) {
-        return getBlockConfig().getInt(blocksIdentifier + "." + blockName + "." + radiusIdentifier);
-    }
-
-    // Return the diameter of the RegionCreator with the specified name
-    public int getDiameter(String blockName) {
-        return 2 * getRadius(blockName) + 1;
-    }
-
     // Return the ItemName with the specified diameter
     public String getItemName(int diameter) {
         return "§b" + getConfig().getString("itemName", "").replaceAll("%DIAMETER%", Integer.toString(diameter));
-    }
-
-    // Return the players region count
-    public int getRegionCount(UUID UUID) {
-        return getConfig().getInt(playerIdentifier + "." + UUID.toString() + "." + regionsIdentifier + "." + regionCountIdentifier);
-    }
-
-    // Return the players regionCreatorsReceived count
-    public int getRegionCreatorsReceived(UUID UUID) {
-        return getConfig().getInt(playerIdentifier + "." + UUID.toString() + "." + regionsIdentifier + "." + regionCreatorsReceivedIdentifier);
     }
 }
