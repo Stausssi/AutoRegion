@@ -1,11 +1,6 @@
 package io.stausssi.plugins.autoregion;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-
+import com.google.common.util.concurrent.*;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldguard.WorldGuard;
@@ -17,15 +12,6 @@ import com.sk89q.worldguard.protection.regions.RegionType;
 import com.sk89q.worldguard.protection.util.DomainInputResolver;
 import com.sk89q.worldguard.protection.util.DomainInputResolver.UserLocatorPolicy;
 import com.sk89q.worldguard.util.profile.resolver.ProfileService;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -35,23 +21,16 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.*;
+import java.util.concurrent.Executors;
 
 public class Events implements Listener {
     public static AutoRegion plugin;
 
-    // Get config identifiers from the Main class
-    public static String messagesIdentifier = AutoRegion.messagesIdentifier;
-
-    public static String groupIdentifier = AutoRegion.groupIdentifier;
-
-    public static String playerIdentifier = AutoRegion.playerIdentifier;
-    public static String nameIdentifier = AutoRegion.nameIdentifier;
-    public static String regionsIdentifier = AutoRegion.regionsIdentifier;
-    public static String regionCountIdentifier = AutoRegion.regionCountIdentifier;
-    public static String regionCreatorsReceivedIdentifier = AutoRegion.regionCreatorsReceivedIdentifier;
-
-    public static String blocksIdentifier = AutoRegion.blocksIdentifier;
-    public static String radiusIdentifier = AutoRegion.radiusIdentifier;
+    private static final ConfigHandler configHandler = ConfigHandler.getInstance();
+    private static final MessageHandler messageHandler = MessageHandler.getInstance();
 
     // Initialize the plugin variable
     public Events(AutoRegion main) {
@@ -68,14 +47,14 @@ public class Events implements Listener {
         Material m = block.getType();
 
         // Get the blocks name
-        String blockName = m.name();
+        String blockIdentifier = BlockNameConverter.toIdentifier(m.name());
 
         // Get the player that triggered the Event
         Player p = e.getPlayer();
-        UUID playerUUID = p.getUniqueId();
+        UUID playerID = p.getUniqueId();
 
         // Check whether block has been defined in the config
-        if (getMain().getBlockConfig().get(blocksIdentifier + "." + blockName) != null) {
+        if (configHandler.isRegionCreator(blockIdentifier)) {
             // Get the held item
             ItemStack item = new ItemStack(p.getInventory().getItemInMainHand());
 
@@ -85,7 +64,7 @@ public class Events implements Listener {
                 ItemMeta meta = item.getItemMeta();
 
                 // Check whether item is a RegionCreator
-                if (meta.getLore().equals(getMain().getLore())) {
+                if (Objects.equals(meta.getLore(), plugin.getLore())) {
 
                     // Create Integers for the players regionCount and max region per group
                     int playerRegionCount, maxRegionsGroup;
@@ -94,7 +73,7 @@ public class Events implements Listener {
                     String group = "default";
 
                     // Get the group
-                    for (String s : getMain().getConfig().getConfigurationSection(groupIdentifier).getKeys(false)) {
+                    for (String s : configHandler.getGroups()) {
                         // Check whether the player has the permission corresponding to a group
                         if (p.hasPermission("autoregion.regions." + s)) {
                             group = s;
@@ -103,10 +82,10 @@ public class Events implements Listener {
                     }
 
                     // Get max regions of the group
-                    maxRegionsGroup = getMain().getConfig().getInt(groupIdentifier + "." + group);
+                    maxRegionsGroup = configHandler.getRegionCount(group, true);
 
                     // Get players regionCount
-                    playerRegionCount = getMain().getRegionCount(playerUUID);
+                    playerRegionCount = configHandler.getRegionCount(playerID);
 
                     /* Check whether player has max regions already
                      * -1 equals unlimited regions
@@ -119,9 +98,9 @@ public class Events implements Listener {
                         int z = block.getZ();
 
                         // Get the radius of the RegionCreator
-                        int radius = getMain().getRadius(blockName);
+                        int radius = configHandler.getRadius(blockIdentifier);
 
-                        // Create BlockVectors for each corner and from 0 to the worlds maximum build height
+                        // Create BlockVectors for each corner and from 0 to the world's maximum build height
                         BlockVector3 pos1 = BlockVector3.at(x + radius, 0, z + radius);
                         BlockVector3 pos2 = BlockVector3.at(x - radius, block.getWorld().getMaxHeight(), z - radius);
 
@@ -142,7 +121,7 @@ public class Events implements Listener {
                         }
 
                         Map<String, ProtectedRegion> regionList = rMan.getRegions();
-                        List<ProtectedRegion> regions = new ArrayList<ProtectedRegion>();
+                        List<ProtectedRegion> regions = new ArrayList<>();
 
                         // Get all regions in the world
                         for (String key : regionList.keySet()) {
@@ -175,9 +154,9 @@ public class Events implements Listener {
                                     future,
                                     new FutureCallback<DefaultDomain>() {
                                         @Override
-                                        public void onFailure(Throwable throwable) {
+                                        public void onFailure(@NotNull Throwable throwable) {
                                             d.addPlayer(p.getName());
-                                            d.addPlayer(playerUUID);
+                                            d.addPlayer(playerID);
                                             pReg.setOwners(d);
                                         }
 
@@ -196,31 +175,20 @@ public class Events implements Listener {
                             // Replace RegionCreator with air
                             e.getBlockPlaced().setType(Material.AIR);
 
-                            // Add 1 to the RegionCount
-                            getMain().getConfig().set(playerIdentifier + "." + playerUUID + "." + regionsIdentifier + "." + regionCountIdentifier, playerRegionCount + 1);
+                            configHandler.addRegion(p);
 
-                            // Save the players DisplayName
-                            getMain().getConfig().set(playerIdentifier + "." + playerUUID + "." + nameIdentifier, p.getName());
-                            getMain().saveConfig();
-
-                            p.sendMessage(getMain().colorMessage(getMain().getConfig().getString(
-                                    messagesIdentifier + "." + "regionCreated",
-                                    "REGION_CREATED_MESSAGE_MISSING"
-                            ).replaceAll("%OWNER%", p.getName())));
+                            messageHandler.sendMessage(p, "regionCreated", Collections.singletonMap("%OWNER%", p.getName()));
                         } else {
-                            p.sendMessage(getMain().colorMessage(getMain().getConfig().getString(
-                                    messagesIdentifier + "." + "regionIntersecting",
-                                    "REGION_INTERSECTING_MESSAGE_MISSING"
-                            )));
+                            messageHandler.sendMessage(p, "regionIntersecting");
                             e.setCancelled(true);
                         }
                     } else {
-                        p.sendMessage(getMain().colorMessage(getMain().getConfig().getString(
-                                messagesIdentifier + "." + "maxRegionsReached",
-                                "MAX_REGIONS_REACHED_MESSAGE_MISSING"
-                        ).replaceAll("%REGIONS%", Integer.toString(maxRegionsGroup)).replaceAll("%GROUP%", group)));
+                        HashMap<String, String> replacements = new HashMap<>();
+                        replacements.put("%REGIONS%", Integer.toString(maxRegionsGroup));
+                        replacements.put("%GROUP%", group);
+
+                        messageHandler.sendMessage(p, "maxRegionsReached", replacements);
                         e.setCancelled(true);
-                        return;
                     }
                 }
             }
@@ -231,19 +199,17 @@ public class Events implements Listener {
     public static void onPlayerJoin(PlayerJoinEvent e) {
         // Get the joined player and their UUID
         Player p = e.getPlayer();
-        UUID UUID = p.getUniqueId();
+
+        // Get the RegionCreator which will be given to the player
+        String blockIdentifier = configHandler.blockOnFirstJoin();
 
         // Check whether this is the first time the player has played and blockOnFirstJoin is enabled
-        if (!p.hasPlayedBefore() && getMain().getConfig().getBoolean("blockOnFirstJoin")) {
-            // Get the RegionCreator which will be given to the player
-            String block = getMain().getConfig().getString("block", "").toUpperCase();
-
-            // Get the diameter and ItemName
-            int diameter = getMain().getDiameter(block);
-            String itemName = getMain().getItemName(diameter);
+        if (!p.hasPlayedBefore() && blockIdentifier != null) {
+            // Get the name of the item
+            String itemName = configHandler.createItemName(blockIdentifier);
 
             // Create the item
-            Material m = Material.getMaterial(block);
+            Material m = Material.getMaterial(blockIdentifier);
             ItemStack stack = new ItemStack(m);
 
             // Get the itemMeta
@@ -251,7 +217,7 @@ public class Events implements Listener {
 
             // Set ItemName and ItemLore
             meta.setDisplayName(itemName);
-            meta.setLore(getMain().getLore());
+            meta.setLore(plugin.getLore());
 
             // Set the Meta
             stack.setItemMeta(meta);
@@ -260,19 +226,11 @@ public class Events implements Listener {
             p.getInventory().addItem(stack);
 
             // Add 1 to the RegionCreatorsReceived count 
-            getMain().getConfig().set(playerIdentifier + "." + UUID + "." + regionsIdentifier + "." + regionCreatorsReceivedIdentifier, getMain().getRegionCreatorsReceived(UUID) + 1);
+            configHandler.addReceivedRegionCreator(p);
 
-            p.sendMessage(getMain().colorMessage(getMain().getConfig().getString(
-                    messagesIdentifier + "." + "playerWelcomeMessage",
-                    "PLAYER_WELCOME_MESSAGE_MISSING"
-            ).replaceAll("%DIAMETER%", Integer.toString(diameter))));
+            messageHandler.sendMessage(p, "playerWelcomeMessage", Collections.singletonMap("%DIAMETER%", String.valueOf(configHandler.getDiameter(blockIdentifier))));
         }
 
-    }
-
-    // Return the Plugin class
-    private static AutoRegion getMain() {
-        return plugin;
     }
 }
 

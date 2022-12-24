@@ -20,18 +20,17 @@ public class ConfigHandler {
     private static boolean initialized = false;
 
     private static final MessageHandler messageHandler = MessageHandler.getInstance();
-    private AutoRegion plugin;
 
     // Declare Identifiers for the config and blocks file
-    private static String messagesIdentifier = "messages";
-    private static String groupIdentifier = "groups";
-    private static String playerIdentifier = "players";
-    private static String nameIdentifier = "name";
-    private static String regionsIdentifier = "regions";
-    private static String regionCountIdentifier = "regionCount";
-    private static String regionCreatorsReceivedIdentifier = "regionCreatorsReceived";
-    private static String blocksIdentifier = "Blocks";
-    private static String radiusIdentifier = "radius";
+    private static final String messagesIdentifier = "messages";
+    private static final String groupIdentifier = "groups";
+    private static final String playerIdentifier = "players";
+    private static final String nameIdentifier = "name";
+    private static final String regionsIdentifier = "regions";
+    private static final String regionCountIdentifier = "regionCount";
+    private static final String regionCreatorsReceivedIdentifier = "regionCreatorsReceived";
+    private static final String blocksIdentifier = "Blocks";
+    private static final String radiusIdentifier = "radius";
 
 
     private FileConfiguration blockConfig, pluginConfig;
@@ -51,8 +50,6 @@ public class ConfigHandler {
      * @return Whether the init was successful. False if something went wrong.
      */
     public boolean init(@NotNull AutoRegion plugin) {
-        this.plugin = plugin;
-
         messageHandler.logServerConsole("Loading config...");
 
         File dataFolder = plugin.getDataFolder();
@@ -122,10 +119,9 @@ public class ConfigHandler {
 
         messageHandler.logServerConsole("Saving config...");
 
-        plugin.saveConfig();
-
-        // Try saving the BlockConfig
+        // Try saving the configs
         try {
+            pluginConfig.save(configFile);
             blockConfig.save(blockFile);
         } catch (IOException e) {
             e.printStackTrace();
@@ -183,17 +179,39 @@ public class ConfigHandler {
      *
      * @param player The player that received the RegionCreator.
      */
-    public void addRegionCreator(Player player) {
+    public void addReceivedRegionCreator(Player player) {
         UUID playerID = player.getUniqueId();
         String UUID = String.valueOf(playerID);
 
-        int currentCount = getRegionCount(UUID);
+        int currentCount = getRegionCreatorCount(UUID);
 
         // Add 1 to received RegionCreators
         pluginConfig.set(createIdentifier(playerIdentifier, UUID, regionsIdentifier, regionCreatorsReceivedIdentifier), currentCount + 1);
 
         // Update the players name
         pluginConfig.set(createIdentifier(playerIdentifier, UUID, nameIdentifier), player.getName());
+
+        save();
+    }
+
+    /**
+     * Update the config if a player created a region.
+     *
+     * @param player The player that created a region with a RegionCreator.
+     */
+    public void addRegion(Player player) {
+        UUID playerID = player.getUniqueId();
+        String UUID = String.valueOf(playerID);
+
+        int currentCount = getRegionCount(UUID);
+
+        // Add 1 to the RegionCount
+        pluginConfig.set(createIdentifier(playerIdentifier, UUID, regionsIdentifier, regionCountIdentifier), currentCount + 1);
+
+        // Update the players name
+        pluginConfig.set(createIdentifier(playerIdentifier, UUID, nameIdentifier), player.getName());
+
+        save();
     }
 
     /**
@@ -207,6 +225,16 @@ public class ConfigHandler {
     }
 
     /**
+     * Gets the number of regions a player has created with RegionCreators.
+     *
+     * @param UUID The UUID of the player.
+     * @return The number of regions.
+     */
+    public int getRegionCount(UUID UUID) {
+        return getRegionCount(String.valueOf(UUID), false);
+    }
+
+    /**
      * Either gets the number of regions a player has created with RegionCreators or the maximum number of regions a
      * group can create.
      *
@@ -215,8 +243,29 @@ public class ConfigHandler {
      * @return The number of regions.
      */
     public int getRegionCount(String key, boolean isGroup) {
-        key = createIdentifier(isGroup ? groupIdentifier : playerIdentifier, key);
+        key = createIdentifier(isGroup ? groupIdentifier : playerIdentifier, key, regionsIdentifier, regionCountIdentifier);
         return pluginConfig.getInt(key, 0);
+    }
+
+
+    /**
+     * The amount of RegionCreators the given player has received.
+     *
+     * @param UUID The UUID of the player.
+     * @return The number of received RegionCreators.
+     */
+    public int getRegionCreatorCount(UUID UUID) {
+        return getRegionCreatorCount(String.valueOf(UUID));
+    }
+
+    /**
+     * The amount of RegionCreators the given player has received.
+     *
+     * @param UUID The UUID of the player.
+     * @return The number of received RegionCreators.
+     */
+    public int getRegionCreatorCount(String UUID) {
+        return pluginConfig.getInt(createIdentifier(playerIdentifier, UUID, regionsIdentifier, regionCountIdentifier), 0);
     }
 
     /**
@@ -314,6 +363,28 @@ public class ConfigHandler {
 
         return true;
 
+    }
+
+    /**
+     * Get all registered groups from the config.
+     *
+     * @return A set containing all group identifiers.
+     */
+    public Set<String> getGroups() {
+        return Objects.requireNonNull(pluginConfig.getConfigurationSection(groupIdentifier)).getKeys(false);
+    }
+
+    /**
+     * Get the block a player should receive on the first join.
+     *
+     * @return The name of the block in IDENTIFIER_FORMAT or null, if blockOnFirstJoin is false.
+     */
+    public String blockOnFirstJoin() {
+        if (!pluginConfig.getBoolean("blockOnFirstJoin")) {
+            return null;
+        }
+
+        return BlockNameConverter.toIdentifier(getString("block"));
     }
 }
 

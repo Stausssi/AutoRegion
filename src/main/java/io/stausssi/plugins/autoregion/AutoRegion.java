@@ -381,7 +381,7 @@ public class AutoRegion extends JavaPlugin {
                                         p.getInventory().addItem(stack);
 
                                         // Persist the changes to the config
-                                        configHandler.addRegionCreator(p);
+                                        configHandler.addReceivedRegionCreator(p);
 
                                         // Message both giver and receiver
                                         HashMap<String, String> replacements = new HashMap<>();
