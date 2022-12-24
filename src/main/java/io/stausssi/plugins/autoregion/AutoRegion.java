@@ -461,9 +461,36 @@ public class AutoRegion extends JavaPlugin {
         return m != null && m.isBlock();
     }
 
-    // Return the List containing the ItemLore
+    /**
+     * Get the lore a RegionCreator must have.
+     *
+     * @return The lore of a RegionCreator.
+     */
     public List<String> getLore() {
         return lore;
+    }
+
+    /**
+     * Safe, non-nullable, way to retrieve the lore of a given item.
+     *
+     * @param item The item to get the lore from.
+     * @return The lore if it exists, or an empty List.
+     */
+    public List<String> getLore(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+
+        return meta != null && meta.hasLore() ? meta.getLore() : new ArrayList<>();
+    }
+
+    /**
+     * Ensures that the ItemMeta of the given item is not null.
+     * Only for AIR a null-meta is possible. AIR is not a valid RegionCreator as well.
+     *
+     * @param item The item to get the meta from.
+     * @return The ItemMeta of the given item.
+     */
+    public static @NotNull ItemMeta getMetaSafe(ItemStack item) {
+        return Objects.requireNonNull(item.getItemMeta());
     }
 
     // Return the ItemName with the specified diameter

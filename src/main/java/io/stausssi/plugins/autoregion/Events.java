@@ -32,7 +32,6 @@ public class Events implements Listener {
     private static final ConfigHandler configHandler = ConfigHandler.getInstance();
     private static final MessageHandler messageHandler = MessageHandler.getInstance();
 
-    // Initialize the plugin variable
     public Events(AutoRegion main) {
         plugin = main;
     }
@@ -53,146 +52,141 @@ public class Events implements Listener {
         Player p = e.getPlayer();
         UUID playerID = p.getUniqueId();
 
+        // Get the held item
+        ItemStack item = new ItemStack(p.getInventory().getItemInMainHand());
+
         // Check whether block has been defined in the config
-        if (configHandler.isRegionCreator(blockIdentifier)) {
-            // Get the held item
-            ItemStack item = new ItemStack(p.getInventory().getItemInMainHand());
+        // Check whether item has a meta and therefore maybe is a RegionCreator
+        if (!configHandler.isRegionCreator(blockIdentifier) || !item.hasItemMeta() || !Objects.equals(plugin.getLore(item), plugin.getLore())) {
+            return;
+        }
 
-            // Check whether item has a meta and therefore maybe is a RegionCreator
-            if (item.hasItemMeta()) {
-                // Get the itemMeta of heldItem
-                ItemMeta meta = item.getItemMeta();
+        // Create Integers for the players regionCount and max region per group
+        int playerRegionCount, maxRegionsGroup;
 
-                // Check whether item is a RegionCreator
-                if (Objects.equals(meta.getLore(), plugin.getLore())) {
+        // Create the group string, by default the group is set to "default"
+        String group = "default";
 
-                    // Create Integers for the players regionCount and max region per group
-                    int playerRegionCount, maxRegionsGroup;
-
-                    // Create the group string, by default the group is set to "default"
-                    String group = "default";
-
-                    // Get the group
-                    for (String s : configHandler.getGroups()) {
-                        // Check whether the player has the permission corresponding to a group
-                        if (p.hasPermission("autoregion.regions." + s)) {
-                            group = s;
-                            break;
-                        }
-                    }
-
-                    // Get max regions of the group
-                    maxRegionsGroup = configHandler.getRegionCount(group, true);
-
-                    // Get players regionCount
-                    playerRegionCount = configHandler.getRegionCount(playerID);
-
-                    /* Check whether player has max regions already
-                     * -1 equals unlimited regions
-                     * OPs shouldn't be restricted
-                     */
-                    if (playerRegionCount < maxRegionsGroup || maxRegionsGroup == -1 || p.isOp() || p.hasPermission("autoregion.regions.*")) {
-
-                        // Get coordinates of the placed block
-                        int x = block.getX();
-                        int z = block.getZ();
-
-                        // Get the radius of the RegionCreator
-                        int radius = configHandler.getRadius(blockIdentifier);
-
-                        // Create BlockVectors for each corner and from 0 to the world's maximum build height
-                        BlockVector3 pos1 = BlockVector3.at(x + radius, 0, z + radius);
-                        BlockVector3 pos2 = BlockVector3.at(x - radius, block.getWorld().getMaxHeight(), z - radius);
-
-                        // Get the RegionManager of the world
-                        RegionManager rMan = WorldGuard.getInstance().getPlatform().getRegionContainer().get(BukkitAdapter.adapt(block.getWorld()));
-
-                        // Create the Region Instance
-                        ProtectedCuboidRegion pReg;
-
-                        /* Check whether the player already has a region
-                         * If so, add a count next to the regions name
-                         * Create RegionInstance
-                         */
-                        if (rMan.getRegion(p.getName()) != null) {
-                            pReg = new ProtectedCuboidRegion(p.getName() + playerRegionCount, pos1, pos2);
-                        } else {
-                            pReg = new ProtectedCuboidRegion(p.getName(), pos1, pos2);
-                        }
-
-                        Map<String, ProtectedRegion> regionList = rMan.getRegions();
-                        List<ProtectedRegion> regions = new ArrayList<>();
-
-                        // Get all regions in the world
-                        for (String key : regionList.keySet()) {
-                            // Get the region with the name of key
-                            ProtectedRegion pr = regionList.get(key);
-                            // Exclude the global region ("__global__")
-                            if (pr.getType() != RegionType.GLOBAL) {
-                                // Add region to the list
-                                regions.add(pr);
-                            }
-                        }
-
-                        // Check whether there are intersecting regions
-                        if (pReg.getIntersectingRegions(regions).isEmpty()) {
-                            DefaultDomain d = new DefaultDomain();
-
-                            // Convert name to WorldEdit UUID, 
-                            // src: https://worldguard.readthedocs.io/en/latest/developer/regions/protected-region/
-                            ListeningExecutorService executor =
-                                    MoreExecutors.listeningDecorator(Executors.newCachedThreadPool());
-
-                            String[] input = new String[]{p.getName()};
-                            ProfileService profiles = WorldGuard.getInstance().getProfileService();
-                            DomainInputResolver resolver = new DomainInputResolver(profiles, input);
-                            resolver.setLocatorPolicy(UserLocatorPolicy.UUID_ONLY);
-                            ListenableFuture<DefaultDomain> future = executor.submit(resolver);
-
-                            // Add a callback using Guava
-                            Futures.addCallback(
-                                    future,
-                                    new FutureCallback<DefaultDomain>() {
-                                        @Override
-                                        public void onFailure(@NotNull Throwable throwable) {
-                                            d.addPlayer(p.getName());
-                                            d.addPlayer(playerID);
-                                            pReg.setOwners(d);
-                                        }
-
-                                        @Override
-                                        public void onSuccess(DefaultDomain result) {
-                                            pReg.setOwners(result);
-                                        }
-
-                                    },
-                                    Runnable::run
-                            );
-
-                            // Add region to the RegionManager
-                            rMan.addRegion(pReg);
-
-                            // Replace RegionCreator with air
-                            e.getBlockPlaced().setType(Material.AIR);
-
-                            configHandler.addRegion(p);
-
-                            messageHandler.sendMessage(p, "regionCreated", Collections.singletonMap("%OWNER%", p.getName()));
-                        } else {
-                            messageHandler.sendMessage(p, "regionIntersecting");
-                            e.setCancelled(true);
-                        }
-                    } else {
-                        HashMap<String, String> replacements = new HashMap<>();
-                        replacements.put("%REGIONS%", Integer.toString(maxRegionsGroup));
-                        replacements.put("%GROUP%", group);
-
-                        messageHandler.sendMessage(p, "maxRegionsReached", replacements);
-                        e.setCancelled(true);
-                    }
-                }
+        // Get the group
+        for (String s : configHandler.getGroups()) {
+            // Check whether the player has the permission corresponding to a group
+            if (p.hasPermission("autoregion.regions." + s)) {
+                group = s;
+                break;
             }
         }
+
+        // Get max regions of the group
+        maxRegionsGroup = configHandler.getRegionCount(group, true);
+
+        // Get players regionCount
+        playerRegionCount = configHandler.getRegionCount(playerID);
+
+        /* Check whether player has max regions already
+         * -1 equals unlimited regions
+         * OPs shouldn't be restricted
+         */
+        if (playerRegionCount >= maxRegionsGroup && maxRegionsGroup != -1 && !p.isOp() && !p.hasPermission("autoregion.regions.*")) {
+            HashMap<String, String> replacements = new HashMap<>();
+            replacements.put("%REGIONS%", Integer.toString(maxRegionsGroup));
+            replacements.put("%GROUP%", group);
+
+            messageHandler.sendMessage(p, "maxRegionsReached", replacements);
+            e.setCancelled(true);
+            return;
+        }
+
+        // Get coordinates of the placed block
+        int x = block.getX();
+        int z = block.getZ();
+
+        // Get the radius of the RegionCreator
+        int radius = configHandler.getRadius(blockIdentifier);
+
+        // Create BlockVectors for each corner and from 0 to the world's maximum build height
+        BlockVector3 pos1 = BlockVector3.at(x + radius, 0, z + radius);
+        BlockVector3 pos2 = BlockVector3.at(x - radius, block.getWorld().getMaxHeight(), z - radius);
+
+        // Get the RegionManager of the world
+        RegionManager rMan = WorldGuard.getInstance().getPlatform().getRegionContainer().get(BukkitAdapter.adapt(block.getWorld()));
+        assert rMan != null;
+
+        // Create the Region Instance
+        ProtectedCuboidRegion pReg;
+
+        /* Check whether the player already has a region
+         * If so, add a count next to the regions name
+         * Create RegionInstance
+         */
+        if (rMan.getRegion(p.getName()) != null) {
+            pReg = new ProtectedCuboidRegion(p.getName() + playerRegionCount, pos1, pos2);
+        } else {
+            pReg = new ProtectedCuboidRegion(p.getName(), pos1, pos2);
+        }
+
+        Map<String, ProtectedRegion> regionList = rMan.getRegions();
+        List<ProtectedRegion> regions = new ArrayList<>();
+
+        // Get all regions in the world
+        for (String key : regionList.keySet()) {
+            // Get the region with the name of key
+            ProtectedRegion pr = regionList.get(key);
+            // Exclude the global region ("__global__")
+            if (pr.getType() != RegionType.GLOBAL) {
+                // Add region to the list
+                regions.add(pr);
+            }
+        }
+
+        // Check whether there are intersecting regions
+        if (!pReg.getIntersectingRegions(regions).isEmpty()) {
+            messageHandler.sendMessage(p, "regionIntersecting");
+            e.setCancelled(true);
+            return;
+        }
+
+
+        DefaultDomain d = new DefaultDomain();
+
+        // Convert name to WorldEdit UUID,
+        // src: https://worldguard.readthedocs.io/en/latest/developer/regions/protected-region/
+        ListeningExecutorService executor =
+                MoreExecutors.listeningDecorator(Executors.newCachedThreadPool());
+
+        String[] input = new String[]{p.getName()};
+        ProfileService profiles = WorldGuard.getInstance().getProfileService();
+        DomainInputResolver resolver = new DomainInputResolver(profiles, input);
+        resolver.setLocatorPolicy(UserLocatorPolicy.UUID_ONLY);
+        ListenableFuture<DefaultDomain> future = executor.submit(resolver);
+
+        // Add a callback using Guava
+        Futures.addCallback(
+                future,
+                new FutureCallback<DefaultDomain>() {
+                    @Override
+                    public void onFailure(@NotNull Throwable throwable) {
+                        d.addPlayer(p.getName());
+                        d.addPlayer(playerID);
+                        pReg.setOwners(d);
+                    }
+
+                    @Override
+                    public void onSuccess(DefaultDomain result) {
+                        pReg.setOwners(result);
+                    }
+
+                },
+                Runnable::run
+        );
+
+        // Add region to the RegionManager
+        rMan.addRegion(pReg);
+
+        // Replace RegionCreator with air
+        e.getBlockPlaced().setType(Material.AIR);
+
+        configHandler.addRegion(p);
+        messageHandler.sendMessage(p, "regionCreated", Collections.singletonMap("%OWNER%", p.getName()));
     }
 
     @EventHandler
@@ -210,10 +204,11 @@ public class Events implements Listener {
 
             // Create the item
             Material m = Material.getMaterial(blockIdentifier);
+            assert m != null;
             ItemStack stack = new ItemStack(m);
 
             // Get the itemMeta
-            ItemMeta meta = stack.getItemMeta();
+            ItemMeta meta = AutoRegion.getMetaSafe(stack);
 
             // Set ItemName and ItemLore
             meta.setDisplayName(itemName);
@@ -230,7 +225,6 @@ public class Events implements Listener {
 
             messageHandler.sendMessage(p, "playerWelcomeMessage", Collections.singletonMap("%DIAMETER%", String.valueOf(configHandler.getDiameter(blockIdentifier))));
         }
-
     }
 }
 
